@@ -15,6 +15,8 @@ package io.dipcoin.sui.perp.client.core;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import java.util.Map;
+
 /**
  * @author : Same
  * @datetime : 2025/10/22 13:48
@@ -24,13 +26,13 @@ public interface HttpClient {
 
     <T> T post(Object request, String url, TypeReference<T> typeReference);
 
-    <T> T get(String url, TypeReference<T> typeReference);
+    <T> T get(String url, Map<String, String> queryParams, TypeReference<T> typeReference);
 
     <T> T postWithMainAuth(Object request, String url, TypeReference<T> typeReference);
 
-    <T> T getWithMainAuth(String url, TypeReference<T> typeReference);
+    <T> T getWithMainAuth(String url, Map<String, String> queryParams, TypeReference<T> typeReference);
 
     <T> T postWithSubAuth(Object request, String url, TypeReference<T> typeReference);
 
-    <T> T getWithSubAuth(String url, TypeReference<T> typeReference);
+    <T> T getWithSubAuth(String url, Map<String, String> queryParams, TypeReference<T> typeReference);
 }

@@ -11,26 +11,28 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.constant;
+package io.dipcoin.sui.perp.wallet;
 
-import io.dipcoin.sui.perp.config.PerpConfigs;
-import io.dipcoin.sui.perp.model.PerpConfig;
+import io.dipcoin.sui.crypto.Ed25519KeyPair;
+import io.dipcoin.sui.crypto.SuiKeyPair;
 
 /**
  * @author : Same
- * @datetime : 2025/10/21 10:53
- * @Description : perp network selection
+ * @datetime : 2025/10/23 18:24
+ * @Description :
  */
-public enum PerpNetwork {
+public interface WalletKey {
 
-    MAINNET,
-    TESTNET;
+    /**
+     * test main wallet
+     * 0x123
+     */
+    SuiKeyPair mainKeyPair = Ed25519KeyPair.decodeHex("123");
 
-    public PerpConfig getConfig() {
-        return switch (this) {
-            case MAINNET -> PerpConfigs.MAINNET_CONFIG;
-            case TESTNET -> PerpConfigs.TESTNET_CONFIG;
-        };
-    }
+    /**
+     * test sub wallet
+     * 0x456
+     */
+    SuiKeyPair subKeyPair = Ed25519KeyPair.decodeHex("456");
 
 }

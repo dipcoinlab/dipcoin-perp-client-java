@@ -14,18 +14,29 @@
 package io.dipcoin.sui.perp.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.dipcoin.sui.crypto.SuiKeyPair;
+import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
 import io.dipcoin.sui.perp.client.core.AbstractHttpClient;
-import io.dipcoin.sui.perp.constant.PerpNetwork;
+import io.dipcoin.sui.perp.constant.PerpConstant;
 import io.dipcoin.sui.perp.constant.PerpPath;
+import io.dipcoin.sui.perp.enums.PerpNetwork;
 import io.dipcoin.sui.perp.exception.ErrorCode;
 import io.dipcoin.sui.perp.exception.PerpHttpException;
 import io.dipcoin.sui.perp.model.ApiResponse;
 import io.dipcoin.sui.perp.model.PerpConfig;
 import io.dipcoin.sui.perp.model.request.AuthorizationRequest;
+import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
+import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
 import io.dipcoin.sui.perp.model.response.AuthorizationResponse;
+import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
+import io.dipcoin.sui.perp.util.OrderUtil;
 import io.dipcoin.sui.protocol.SuiClient;
 import io.dipcoin.sui.protocol.http.HttpService;
+
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author : Same
@@ -34,9 +45,9 @@ import io.dipcoin.sui.protocol.http.HttpService;
  */
 public class PerpHttpClient extends AbstractHttpClient {
 
-    private final PerpOnChainClient perpOnChainClient;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final SuiClient suiClient;
+    private final PerpOnChainClient perpOnChainClient;
 
     private final PerpConfig perpConfig;
 
@@ -54,7 +65,6 @@ public class PerpHttpClient extends AbstractHttpClient {
 
     public PerpHttpClient(PerpNetwork perpNetwork, SuiClient suiClient, SuiKeyPair mainAccount) {
         this.perpConfig = perpNetwork.getConfig();
-        this.suiClient = suiClient;
         this.perpOnChainClient = new PerpOnChainClient(suiClient, perpConfig);
         this.mainAccount = mainAccount;
         this.subAccount = mainAccount;
@@ -66,7 +76,6 @@ public class PerpHttpClient extends AbstractHttpClient {
 
     public PerpHttpClient(PerpNetwork perpNetwork, SuiClient suiClient, SuiKeyPair mainAccount, SuiKeyPair subAccount) {
         this.perpConfig = perpNetwork.getConfig();
-        this.suiClient = suiClient;
         this.perpOnChainClient = new PerpOnChainClient(suiClient, perpConfig);
         this.mainAccount = mainAccount;
         this.subAccount = subAccount;
@@ -77,6 +86,11 @@ public class PerpHttpClient extends AbstractHttpClient {
 
     // ------------------------- authorize API -------------------------
 
+    /**
+     * authorize
+     * @param request
+     * @return
+     */
     public AuthorizationResponse authorize(AuthorizationRequest request) {
         ApiResponse<AuthorizationResponse> response = post(request, perpConfig.perpEndpoint() + PerpPath.AUTHORIZE, new TypeReference<>() {});
         if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
@@ -86,8 +100,12 @@ public class PerpHttpClient extends AbstractHttpClient {
         }
     }
 
+    /**
+     * authorize
+     * @return
+     */
     public AuthorizationResponse authorize() {
-        String signature = perpOnChainClient.getSignature(subAccount);
+        String signature = OrderUtil.getSignature(PerpConstant.ONBOARDING_MSG, subAccount);
         return authorize(new AuthorizationRequest()
                 .setSignature(signature)
                 .setUserAddress(subAddress)
@@ -95,5 +113,96 @@ public class PerpHttpClient extends AbstractHttpClient {
     }
 
     // ------------------------- write API -------------------------
+
+    /**
+     * place order
+     * @param request
+     * @return
+     */
+    public String placeOrder(PlaceOrderRequest request) {
+        ApiResponse<String> response = postWithSubAuth(request, perpConfig.perpEndpoint() + PerpPath.PLACE_ORDER, new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to placeOrder, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * cancel order
+     * @param request
+     * @return
+     */
+    public CancelOrderResponse cancelOrder(CancelOrderRequest request) {
+        ApiResponse<CancelOrderResponse> response = postWithSubAuth(request, perpConfig.perpEndpoint() + PerpPath.CANCEL_ORDER, new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to cancelOrder, cause : " + response.getMessage());
+        }
+    }
+
+    // ------------------------- on chain API -------------------------
+
+    /**
+     * set sub account
+     * @param subAddress
+     * @param gasPrice
+     * @param gasBudget
+     * @return
+     */
+    public SuiTransactionBlockResponse setSubAccount(String subAddress, long gasPrice, BigInteger gasBudget) {
+        return perpOnChainClient.setSubAccount(mainAccount, subAddress, gasPrice, gasBudget);
+    }
+
+    /**
+     * deposit
+     * @param amount
+     * @param gasPrice
+     * @param gasBudget
+     * @return
+     */
+    public SuiTransactionBlockResponse deposit(BigInteger amount, long gasPrice, BigInteger gasBudget) {
+        return perpOnChainClient.deposit(mainAccount, amount, gasPrice, gasBudget);
+    }
+
+    /**
+     * withdraw
+     * @param amount
+     * @param gasPrice
+     * @param gasBudget
+     * @return
+     */
+    public SuiTransactionBlockResponse withdraw(BigInteger amount, long gasPrice, BigInteger gasBudget) {
+        return perpOnChainClient.withdraw(mainAccount, amount, gasPrice, gasBudget);
+    }
+
+    public SuiKeyPair getMainKeyPair() {
+        return mainAccount;
+    }
+
+    public SuiKeyPair getSubAccount() {
+        return subAccount;
+    }
+
+    /**
+     * convert to queryParams
+     * @param o
+     * @return
+     */
+    private Map<String, String> toQueryParams(Object o) {
+        Map<String, String> queryParams = new HashMap<>();
+        if (o == null) {
+            return queryParams;
+        }
+
+        Map<String, Object> map = objectMapper.convertValue(o, Map.class);
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (entry.getValue() != null) {
+                queryParams.put(entry.getKey(), entry.getValue().toString());
+            }
+        }
+        return queryParams;
+    }
 
 }

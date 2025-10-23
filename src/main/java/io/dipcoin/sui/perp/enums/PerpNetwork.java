@@ -11,22 +11,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.model;
+package io.dipcoin.sui.perp.enums;
+
+import io.dipcoin.sui.perp.config.PerpConfigs;
+import io.dipcoin.sui.perp.model.PerpConfig;
 
 /**
  * @author : Same
- * @datetime : 2025/10/21 10:05
- * @Description : perp network configuration
+ * @datetime : 2025/10/21 10:53
+ * @Description : perp network selection
  */
-public record PerpConfig(
+public enum PerpNetwork {
 
-        String suiRpc,
-        String perpEndpoint,
-        String packageId,
-        String protocolConfig,
-        String coinType,
-        String bank,
-        String subAccounts,
-        String txIndexer
+    MAINNET,
+    TESTNET;
 
-) {}
+    public PerpConfig getConfig() {
+        return switch (this) {
+            case MAINNET -> PerpConfigs.MAINNET_CONFIG;
+            case TESTNET -> PerpConfigs.TESTNET_CONFIG;
+        };
+    }
+
+}

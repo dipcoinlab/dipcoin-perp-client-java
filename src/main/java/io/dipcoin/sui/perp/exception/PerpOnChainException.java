@@ -11,22 +11,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.model;
+package io.dipcoin.sui.perp.exception;
 
 /**
  * @author : Same
- * @datetime : 2025/10/21 10:05
- * @Description : perp network configuration
+ * @datetime : 2025/10/23 10:52
+ * @Description : perp on chian exception
  */
-public record PerpConfig(
+public class PerpOnChainException extends RuntimeException {
 
-        String suiRpc,
-        String perpEndpoint,
-        String packageId,
-        String protocolConfig,
-        String coinType,
-        String bank,
-        String subAccounts,
-        String txIndexer
+    public PerpOnChainException(String message) {
+        super(message);
+    }
 
-) {}
+    public PerpOnChainException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+}

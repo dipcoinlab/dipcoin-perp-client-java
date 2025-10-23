@@ -11,26 +11,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.constant;
+package io.dipcoin.sui.perp.enums;
 
 import lombok.Getter;
 
 /**
  * @author : Same
- * @datetime : 2025/10/22 17:08
- * @Description :
+ * @datetime : 2025/10/23 14:56
+ * @Description : order signature enum
  */
 @Getter
-public enum PerpFunction {
+public enum OrderScheme {
 
-    SET_SUB_ACCOUNT("sub_accounts", "set_sub_account")
+    KP_SECP256("0"),
+    KP_ED25519("1"),
+    UI_ED25519("2"),
     ;
 
-    PerpFunction(String module, String function) {
-        this.module = module;
-        this.function = function;
+    OrderScheme(String type) {
+        this.type = type;
     }
 
-    private final String module;
-    private final String function;
+    private final String type;
+
 }

@@ -11,22 +11,40 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.model;
+package io.dipcoin.sui.perp.model.request;
+
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+import java.util.List;
 
 /**
  * @author : Same
- * @datetime : 2025/10/21 10:05
- * @Description : perp network configuration
+ * @datetime : 2025/10/23 10:08
+ * @Description : CancelOrder request
  */
-public record PerpConfig(
+@Accessors(chain = true)
+@Data
+public class CancelOrderRequest {
 
-        String suiRpc,
-        String perpEndpoint,
-        String packageId,
-        String protocolConfig,
-        String coinType,
-        String bank,
-        String subAccounts,
-        String txIndexer
+    /**
+     * trading pair
+     */
+    private String symbol;
 
-) {}
+    /**
+     * order hash list
+     */
+    private List<String> orderHashes;
+
+    /**
+     * signature
+     */
+    private String signature;
+
+    /**
+     * parent address
+     */
+    private String parentAddress;
+
+}

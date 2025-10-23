@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Map;
 
 /**
  * @author : Same
@@ -106,9 +107,10 @@ public abstract class AbstractHttpClient implements HttpClient {
     }
 
     @Override
-    public <T> T get(String url, TypeReference<T> typeReference) {
+    public <T> T get(String url, Map<String, String> queryParams, TypeReference<T> typeReference) {
+        String finalUrl = this.buildUrlWithParams(url, queryParams);
         Request httpRequest = new Request.Builder()
-                .url(url)
+                .url(finalUrl)
                 .get()
                 .build();
 
@@ -155,9 +157,10 @@ public abstract class AbstractHttpClient implements HttpClient {
     }
 
     @Override
-    public <T> T getWithMainAuth(String url, TypeReference<T> typeReference) {
+    public <T> T getWithMainAuth(String url, Map<String, String> queryParams, TypeReference<T> typeReference) {
+        String finalUrl = this.buildUrlWithParams(url, queryParams);
         Request.Builder builder = new Request.Builder()
-                .url(url)
+                .url(finalUrl)
                 .get();
         addMainHeaders(builder);
         Request httpRequest = builder.build();
@@ -205,9 +208,10 @@ public abstract class AbstractHttpClient implements HttpClient {
     }
 
     @Override
-    public <T> T getWithSubAuth(String url, TypeReference<T> typeReference) {
+    public <T> T getWithSubAuth(String url, Map<String, String> queryParams, TypeReference<T> typeReference) {
+        String finalUrl = this.buildUrlWithParams(url, queryParams);
         Request.Builder builder = new Request.Builder()
-                .url(url)
+                .url(finalUrl)
                 .get();
         addSubHeaders(builder);
         Request httpRequest = builder.build();
@@ -224,6 +228,28 @@ public abstract class AbstractHttpClient implements HttpClient {
         } catch (IOException e) {
             throw new PerpRpcFailedException("Unable to send GET request", e);
         }
+    }
+
+    public String getMainAddress() {
+        return mainAddress;
+    }
+
+    public String getSubAddress() {
+        return subAddress;
+    }
+
+    protected void setAuthHeader(String authToken) {
+        this.authToken = authToken;
+    }
+
+    protected void setAddress(String mainAddress) {
+        this.mainAddress = mainAddress;
+        this.subAddress = mainAddress;
+    }
+
+    protected void setAddress(String mainAddress, String subAddress) {
+        this.mainAddress = mainAddress;
+        this.subAddress = subAddress;
     }
 
     /**
@@ -243,25 +269,30 @@ public abstract class AbstractHttpClient implements HttpClient {
      * @param builder
      */
     private void addMainHeaders(Request.Builder builder) {
-        if (authToken == null || authToken.isEmpty() || subAddress == null || subAddress.isEmpty()) {
+        if (authToken == null || authToken.isEmpty() || mainAddress == null || mainAddress.isEmpty()) {
             throw new PerpHttpException("Missing auth token or subaccount address");
         }
         builder.header(HEADER_AUTH, HEADER_PREFIX + authToken);
         builder.header(HEADER_ADDR, mainAddress);
     }
 
-    public void setAuthHeader(String authToken) {
-        this.authToken = authToken;
-    }
-
-    public void setAddress(String mainAddress) {
-        this.mainAddress = mainAddress;
-        this.subAddress = mainAddress;
-    }
-
-    public void setAddress(String mainAddress, String subAddress) {
-        this.mainAddress = mainAddress;
-        this.subAddress = subAddress;
+    /**
+     * build url with params
+     * @param url
+     * @param queryParams
+     * @return
+     */
+    private String buildUrlWithParams(String url, Map<String, String> queryParams) {
+        if (queryParams != null) {
+            HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+            for (Map.Entry<String, String> entry : queryParams.entrySet()) {
+                if (entry.getValue() != null) {
+                    urlBuilder.addQueryParameter(entry.getKey(), entry.getValue());
+                }
+            }
+            return urlBuilder.build().toString();
+        }
+        return url;
     }
 
 }

@@ -11,22 +11,31 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.model;
+package io.dipcoin.sui.perp.enums;
+
+import lombok.Getter;
 
 /**
  * @author : Same
- * @datetime : 2025/10/21 10:05
- * @Description : perp network configuration
+ * @datetime : 2025/10/22 17:08
+ * @Description :
  */
-public record PerpConfig(
+@Getter
+public enum PerpFunction {
 
-        String suiRpc,
-        String perpEndpoint,
-        String packageId,
-        String protocolConfig,
-        String coinType,
-        String bank,
-        String subAccounts,
-        String txIndexer
+    SET_SUB_ACCOUNT("sub_accounts", "set_sub_account"),
 
-) {}
+    DEPOSIT("bank", "deposit"),
+
+    WITHDRAW("bank", "withdraw"),
+
+    ;
+
+    PerpFunction(String module, String function) {
+        this.module = module;
+        this.function = function;
+    }
+
+    private final String module;
+    private final String function;
+}

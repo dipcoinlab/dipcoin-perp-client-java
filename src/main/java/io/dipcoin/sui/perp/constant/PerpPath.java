@@ -20,6 +20,18 @@ package io.dipcoin.sui.perp.constant;
  */
 public interface PerpPath {
 
-    String AUTHORIZE = "/api/authorize";
+    String AUTHORIZE = "/authorize";
+
+    String PLACE_ORDER = "/perp-trade-api/trade/placeorder";
+
+    String CANCEL_ORDER = "/perp-trade-api/trade/cancelorder";
+
+    String HISTORY_ORDERS = "/perp-trade-api/history/orders";
+
+    String POSITIONS = "/perp-trade-api/curr-info/positions";
+
+    String ORDERS = "/perp-trade-api/curr-info/orders";
+
+    String ACCOUNT = "/perp-trade-api/history/account";
 
 }

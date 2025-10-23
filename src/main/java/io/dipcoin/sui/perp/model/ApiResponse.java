@@ -32,6 +32,8 @@ public class ApiResponse<T> {
 
     private String message;
 
+    private Long timezone;
+
     private T data;
 
     public static <T> ApiResponse<T> success(T data) {

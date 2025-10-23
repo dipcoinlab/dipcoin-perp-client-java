@@ -11,22 +11,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.model;
+package io.dipcoin.sui.perp.config;
+
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
  * @author : Same
- * @datetime : 2025/10/21 10:05
- * @Description : perp network configuration
+ * @datetime : 2025/10/23 16:12
+ * @Description :
  */
-public record PerpConfig(
+public class IntervalExtension implements AfterEachCallback {
 
-        String suiRpc,
-        String perpEndpoint,
-        String packageId,
-        String protocolConfig,
-        String coinType,
-        String bank,
-        String subAccounts,
-        String txIndexer
+    @Override
+    public void afterEach(ExtensionContext context) throws InterruptedException {
+        if (isSuiteMode(context)) {
+            Thread.sleep(2500L);
+        }
+    }
 
-) {}
+    private boolean isSuiteMode(ExtensionContext context) {
+        return context.getTags().contains("suite");
+    }
+
+}
