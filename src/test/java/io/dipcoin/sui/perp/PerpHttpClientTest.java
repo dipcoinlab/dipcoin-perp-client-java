@@ -19,9 +19,11 @@ import io.dipcoin.sui.perp.config.IntervalExtension;
 import io.dipcoin.sui.perp.enums.OrderSide;
 import io.dipcoin.sui.perp.enums.OrderType;
 import io.dipcoin.sui.perp.enums.PerpNetwork;
+import io.dipcoin.sui.perp.model.PageResponse;
 import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
+import io.dipcoin.sui.perp.model.request.OrdersRequest;
 import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
-import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
+import io.dipcoin.sui.perp.model.response.*;
 import io.dipcoin.sui.perp.util.OrderUtil;
 import io.dipcoin.sui.perp.wallet.WalletKey;
 import io.dipcoin.sui.protocol.SuiClient;
@@ -59,7 +61,7 @@ public class PerpHttpClientTest {
 
     @Test
     @Tag("suite")
-    void testSetSubAccount() throws IOException {
+    void testSetSubAccount() {
         // set subAccount if u need
         String subAccount = perpHttpClient.getSubAddress();
         // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
@@ -71,7 +73,7 @@ public class PerpHttpClientTest {
 
     @Test
     @Tag("suite")
-    void testDeposit() throws IOException {
+    void testDeposit() {
         // deposit 10, 000 testUSDC
         BigInteger amount = new BigInteger("10000").multiply(BigInteger.TEN.pow(6));
         // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
@@ -83,12 +85,12 @@ public class PerpHttpClientTest {
 
     @Test
     @Tag("suite")
-    void testPlaceOrder() throws IOException {
+    void testPlaceOrder() {
         // place order
         PlaceOrderRequest request = new PlaceOrderRequest();
         request.setSymbol("ETH-PERP")
                 .setMarket("0x44e07a44992498d610f455310b839d9f29aca7657bce65aa8d614b240900a5c7")
-                .setPrice(new BigInteger("3883").multiply(BigInteger.TEN.pow(18)))
+                .setPrice(new BigInteger("3850").multiply(BigInteger.TEN.pow(18)))
                 .setQuantity(new BigInteger("1").multiply(BigInteger.TEN.pow(18)))
                 .setSide(OrderSide.BUY.getCode())
                 .setOrderType(OrderType.LIMIT.getCode())
@@ -103,7 +105,7 @@ public class PerpHttpClientTest {
 
     @Test
     @Tag("suite")
-    void testCancelOrder() throws IOException {
+    void testCancelOrder() {
         // cancel order
         // be105d39ac54cda71b4e0ea12e7c7c07abef626e8acca318247f8588537d41d5
         List<String> orders = List.of("be105d39ac54cda71b4e0ea12e7c7c07abef626e8acca318247f8588537d41d5");
@@ -119,13 +121,45 @@ public class PerpHttpClientTest {
 
     @Test
     @Tag("suite")
-    void testWithdraw() throws IOException {
+    void testWithdraw() {
         // withdraw 10, 000 testUSDC
         BigInteger amount = new BigInteger("10000").multiply(BigInteger.TEN.pow(6));
         // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
         // gas limit 0.1 SUI (BigInteger.TEN.pow(8))1000
         SuiTransactionBlockResponse response = perpHttpClient.withdraw(amount, 1000L, BigInteger.TEN.pow(8));
         // https://testnet.suivision.xyz/txblock/FtyJ1nT4kwC8MDXwqrYVqEDePy2RquWhbf2xuGNJK7q9
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    @Tag("suite")
+    void testPositions() {
+        List<PositionResponse> response = perpHttpClient.positions();
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    @Tag("suite")
+    void testOrders() {
+        OrdersRequest request = new OrdersRequest();
+        request.setSymbol("ETH-PERP")
+                .setPageNum(1)
+                .setPageSize(20);
+        PageResponse<List<OrdersResponse>> response = perpHttpClient.orders(request);
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    @Tag("suite")
+    void testAccount() {
+        AccountResponse response = perpHttpClient.account();
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    @Tag("suite")
+    void testTradingPair() {
+        List<TradingPairResponse> response = perpHttpClient.tradingPair();
         log.info("Response: {}", response);
     }
 

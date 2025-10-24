@@ -35,6 +35,7 @@ import io.dipcoin.sui.perp.exception.PerpOnChainException;
 import io.dipcoin.sui.perp.exception.PerpRpcFailedException;
 import io.dipcoin.sui.perp.model.PerpConfig;
 import io.dipcoin.sui.protocol.SuiClient;
+import io.dipcoin.sui.protocol.constant.SuiSystem;
 
 import java.io.IOException;
 import java.math.BigInteger;

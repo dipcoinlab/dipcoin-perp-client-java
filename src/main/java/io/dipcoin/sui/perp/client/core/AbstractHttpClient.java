@@ -47,7 +47,9 @@ public abstract class AbstractHttpClient implements HttpClient {
 
     private OkHttpClient okHttpClient;
 
-    private String authToken;
+    private String mainAuthToken;
+
+    private String subAuthToken;
 
     protected String mainAddress;
 
@@ -238,8 +240,12 @@ public abstract class AbstractHttpClient implements HttpClient {
         return subAddress;
     }
 
-    protected void setAuthHeader(String authToken) {
-        this.authToken = authToken;
+    protected void setMainAuthHeader(String mainAuthToken) {
+        this.mainAuthToken = mainAuthToken;
+    }
+
+    protected void setSubAuthHeader(String subAuthToken) {
+        this.subAuthToken = subAuthToken;
     }
 
     protected void setAddress(String mainAddress) {
@@ -253,27 +259,27 @@ public abstract class AbstractHttpClient implements HttpClient {
     }
 
     /**
-     * add auth headers
-     * @param builder
-     */
-    private void addSubHeaders(Request.Builder builder) {
-        if (authToken == null || authToken.isEmpty() || subAddress == null || subAddress.isEmpty()) {
-            throw new PerpHttpException("Missing auth token or subaccount address");
-        }
-        builder.header(HEADER_AUTH, HEADER_PREFIX + authToken);
-        builder.header(HEADER_ADDR, subAddress);
-    }
-
-    /**
-     * add auth headers
+     * add main acccount auth headers
      * @param builder
      */
     private void addMainHeaders(Request.Builder builder) {
-        if (authToken == null || authToken.isEmpty() || mainAddress == null || mainAddress.isEmpty()) {
-            throw new PerpHttpException("Missing auth token or subaccount address");
+        if (mainAuthToken == null || mainAuthToken.isEmpty() || mainAddress == null || mainAddress.isEmpty()) {
+            throw new PerpHttpException("Missing main account auth token or main account address");
         }
-        builder.header(HEADER_AUTH, HEADER_PREFIX + authToken);
+        builder.header(HEADER_AUTH, HEADER_PREFIX + mainAuthToken);
         builder.header(HEADER_ADDR, mainAddress);
+    }
+
+    /**
+     * add subaccount auth headers
+     * @param builder
+     */
+    private void addSubHeaders(Request.Builder builder) {
+        if (subAuthToken == null || subAuthToken.isEmpty() || subAddress == null || subAddress.isEmpty()) {
+            throw new PerpHttpException("Missing subaccount auth token or subaccount address");
+        }
+        builder.header(HEADER_AUTH, HEADER_PREFIX + subAuthToken);
+        builder.header(HEADER_ADDR, subAddress);
     }
 
     /**

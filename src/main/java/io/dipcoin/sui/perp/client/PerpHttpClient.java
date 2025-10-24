@@ -24,19 +24,22 @@ import io.dipcoin.sui.perp.enums.PerpNetwork;
 import io.dipcoin.sui.perp.exception.ErrorCode;
 import io.dipcoin.sui.perp.exception.PerpHttpException;
 import io.dipcoin.sui.perp.model.ApiResponse;
+import io.dipcoin.sui.perp.model.PageResponse;
 import io.dipcoin.sui.perp.model.PerpConfig;
 import io.dipcoin.sui.perp.model.request.AuthorizationRequest;
 import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
+import io.dipcoin.sui.perp.model.request.OrdersRequest;
 import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
-import io.dipcoin.sui.perp.model.response.AuthorizationResponse;
-import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
+import io.dipcoin.sui.perp.model.response.*;
 import io.dipcoin.sui.perp.util.OrderUtil;
 import io.dipcoin.sui.protocol.SuiClient;
 import io.dipcoin.sui.protocol.http.HttpService;
 
 import java.math.BigInteger;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author : Same
@@ -70,8 +73,10 @@ public class PerpHttpClient extends AbstractHttpClient {
         this.subAccount = mainAccount;
         String address = mainAccount.address();
         super.setAddress(address, address);
-        AuthorizationResponse authorize = this.authorize();
-        super.setAuthHeader(authorize.getToken());
+        AuthorizationResponse authorize = this.authorize(mainAccount, address);
+        String token = authorize.getToken();
+        super.setMainAuthHeader(token);
+        super.setSubAuthHeader(token);
     }
 
     public PerpHttpClient(PerpNetwork perpNetwork, SuiClient suiClient, SuiKeyPair mainAccount, SuiKeyPair subAccount) {
@@ -79,9 +84,13 @@ public class PerpHttpClient extends AbstractHttpClient {
         this.perpOnChainClient = new PerpOnChainClient(suiClient, perpConfig);
         this.mainAccount = mainAccount;
         this.subAccount = subAccount;
-        super.setAddress(mainAccount.address(), subAccount.address());
-        AuthorizationResponse authorize = this.authorize();
-        super.setAuthHeader(authorize.getToken());
+        String mainAddress = mainAccount.address();
+        String subAddress = subAccount.address();
+        super.setAddress(mainAddress, subAddress);
+        AuthorizationResponse mainAuthorize = this.authorize(mainAccount, mainAddress);
+        super.setMainAuthHeader(mainAuthorize.getToken());
+        AuthorizationResponse subAuthorize = this.authorize(subAccount, subAddress);
+        super.setSubAuthHeader(subAuthorize.getToken());
     }
 
     // ------------------------- authorize API -------------------------
@@ -104,11 +113,11 @@ public class PerpHttpClient extends AbstractHttpClient {
      * authorize
      * @return
      */
-    public AuthorizationResponse authorize() {
-        String signature = OrderUtil.getSignature(PerpConstant.ONBOARDING_MSG, subAccount);
+    public AuthorizationResponse authorize(SuiKeyPair suiKeyPair, String address) {
+        String signature = OrderUtil.getSignature(PerpConstant.ONBOARDING_MSG, suiKeyPair);
         return authorize(new AuthorizationRequest()
                 .setSignature(signature)
-                .setUserAddress(subAddress)
+                .setUserAddress(address)
                 .setIsTermAccepted(true));
     }
 
@@ -140,6 +149,85 @@ public class PerpHttpClient extends AbstractHttpClient {
         } else {
             throw new PerpHttpException("Failed to cancelOrder, cause : " + response.getMessage());
         }
+    }
+
+    // ------------------------- query API -------------------------
+
+    /**
+     * positions
+     * @return
+     */
+    public List<PositionResponse> positions() {
+        ApiResponse<List<PositionResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.POSITIONS, null, new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to positions, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * current orders
+     * @param request
+     * @return
+     */
+    public PageResponse<List<OrdersResponse>> orders(OrdersRequest request) {
+        ApiResponse<PageResponse<List<OrdersResponse>>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.ORDERS, this.toQueryParams(request), new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to orders, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * account info
+     * @return
+     */
+    public AccountResponse account() {
+        ApiResponse<AccountResponse> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.ACCOUNT, null, new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to orders, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * get all trading pairs
+     * @return
+     */
+    public List<TradingPairResponse> tradingPair() {
+        ApiResponse<List<TradingPairResponse>> response = get(perpConfig.perpEndpoint() + PerpPath.TRADING_PAIR, null, new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to orders, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * get trading pairs by symbol
+     * @param symbol
+     * @return
+     */
+    public TradingPairResponse getTradingPair(String symbol) {
+        if (null == symbol || symbol.isEmpty()) {
+            throw new IllegalArgumentException("symbol is null or empty!");
+        }
+        TradingPairResponse tradingPair = TRADING_PAIRS.get(symbol);
+        if (tradingPair != null) {
+            return tradingPair;
+        }
+
+        List<TradingPairResponse> response = this.tradingPair();
+        if (response == null || response.isEmpty()) {
+            throw new PerpHttpException("remote service internal error!");
+        }
+        for (TradingPairResponse tradingPairResponse : response) {
+            TRADING_PAIRS.put(tradingPairResponse.getSymbol(), tradingPairResponse);
+        }
+        return TRADING_PAIRS.get(symbol);
     }
 
     // ------------------------- on chain API -------------------------
