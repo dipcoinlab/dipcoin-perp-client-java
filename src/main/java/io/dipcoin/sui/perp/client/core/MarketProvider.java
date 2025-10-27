@@ -11,33 +11,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.enums;
+package io.dipcoin.sui.perp.client.core;
 
-import lombok.Getter;
+import io.dipcoin.sui.perp.model.response.TradingPairResponse;
 
 /**
  * @author : Same
- * @datetime : 2025/10/22 17:08
- * @Description :
+ * @datetime : 2025/10/24 13:29
+ * @Description : market provider
  */
-@Getter
-public enum PerpFunction {
+public interface MarketProvider {
 
-    SET_SUB_ACCOUNT("sub_accounts", "set_sub_account"),
-
-    DEPOSIT("bank", "deposit"),
-
-    WITHDRAW("bank", "withdraw"),
-
-    ADD_MARGIN("exchange", "add_margin"),
-
-    ;
-
-    PerpFunction(String module, String function) {
-        this.module = module;
-        this.function = function;
-    }
-
-    private final String module;
-    private final String function;
+    /**
+     * get trading pairs by symbol
+     * @param symbol
+     * @return
+     */
+    TradingPairResponse getTradingPair(String symbol);
 }

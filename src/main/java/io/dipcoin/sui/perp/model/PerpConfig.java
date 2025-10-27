@@ -13,6 +13,8 @@
 
 package io.dipcoin.sui.perp.model;
 
+import io.dipcoin.sui.pyth.model.PythNetwork;
+
 /**
  * @author : Same
  * @datetime : 2025/10/21 10:05
@@ -27,6 +29,7 @@ public record PerpConfig(
         String coinType,
         String bank,
         String subAccounts,
-        String txIndexer
+        String txIndexer,
+        PythNetwork pythNetwork
 
 ) {}

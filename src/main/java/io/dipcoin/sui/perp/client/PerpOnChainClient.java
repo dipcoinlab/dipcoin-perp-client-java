@@ -30,12 +30,17 @@ import io.dipcoin.sui.crypto.Ed25519KeyPair;
 import io.dipcoin.sui.crypto.SuiKeyPair;
 import io.dipcoin.sui.model.coin.Coin;
 import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
+import io.dipcoin.sui.perp.client.core.MarketProvider;
+import io.dipcoin.sui.perp.constant.PerpPythTestnet;
 import io.dipcoin.sui.perp.enums.PerpFunction;
 import io.dipcoin.sui.perp.exception.PerpOnChainException;
 import io.dipcoin.sui.perp.exception.PerpRpcFailedException;
 import io.dipcoin.sui.perp.model.PerpConfig;
+import io.dipcoin.sui.perp.model.response.TradingPairResponse;
 import io.dipcoin.sui.protocol.SuiClient;
 import io.dipcoin.sui.protocol.constant.SuiSystem;
+import io.dipcoin.sui.pyth.core.PythClient;
+import io.dipcoin.sui.pyth.model.PythNetwork;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -56,9 +61,15 @@ public class PerpOnChainClient {
 
     private final PerpConfig perpConfig;
 
-    public PerpOnChainClient(SuiClient suiClient, PerpConfig perpConfig) {
+    private final MarketProvider marketProvider;
+
+    private final PythClient pythClient;
+
+    public PerpOnChainClient(SuiClient suiClient, PerpConfig perpConfig, MarketProvider marketProvider) {
         this.suiClient = suiClient;
         this.perpConfig = perpConfig;
+        this.marketProvider = marketProvider;
+        this.pythClient = new PythClient(suiClient);
     }
 
     /**
@@ -199,12 +210,72 @@ public class PerpOnChainClient {
         }
     }
 
+    /**
+     * add margin
+     * @param suiKeyPair
+     * @param subAddress
+     * @param gasPrice
+     * @param gasBudget
+     * @return
+     */
+    public SuiTransactionBlockResponse addMargin(SuiKeyPair suiKeyPair, String subAddress, String symbol, BigInteger amount, long gasPrice, BigInteger gasBudget) {
+        PerpFunction perpFunction = PerpFunction.ADD_MARGIN;
+        String address = suiKeyPair.address();
+        TradingPairResponse tradingPair = marketProvider.getTradingPair(symbol);
+
+        ProgrammableTransaction programmableTx = pythClient.updatePrice(tradingPair.getPriceIdentifierId(), perpConfig.pythNetwork());
+        // ProgrammableMoveCall
+        ProgrammableMoveCall moveCall = new ProgrammableMoveCall(
+                perpConfig.packageId(),
+                perpFunction.getModule(),
+                perpFunction.getFunction(),
+                TypeTagSerializer.parseStructTypeArgs(perpConfig.coinType(), true),
+                Arrays.asList(
+                        Argument.ofInput(programmableTx.addInput(this.getProtocolConfig())),
+                        Argument.ofInput(programmableTx.addInput(this.getClock())),
+                        Argument.ofInput(programmableTx.addInput(this.getPerpetual(symbol))),
+                        Argument.ofInput(programmableTx.addInput(this.getBank())),
+                        Argument.ofInput(programmableTx.addInput(this.getSubAccounts())),
+                        Argument.ofInput(programmableTx.addInput(this.getTxIndexer())),
+                        Argument.ofInput(programmableTx.addInput(this.getPriceOracleObject(symbol))),
+                        Argument.ofInput(programmableTx.addInput(new CallArgPure(subAddress,
+                                PureBcs.BasePureType.ADDRESS))),
+                        Argument.ofInput(programmableTx.addInput(new CallArgPure(amount,
+                                PureBcs.BasePureType.U128))),
+                        Argument.ofInput(programmableTx.addInput(new CallArgPure(Ed25519KeyPair.generate().privateKey(),
+                                PureBcs.BasePureType.VECTOR_U8)))
+                )
+        );
+
+        // Command
+        Command depositMoveCallCommand = new Command.MoveCall(moveCall);
+        List<Command> commands = new ArrayList<>(List.of(
+                depositMoveCallCommand
+        ));
+        programmableTx.addCommands(commands);
+
+        try {
+            return TransactionBuilder.sendTransaction(suiClient, programmableTx, suiKeyPair, TransactionBuilder.buildGasData(suiClient, address, gasPrice, gasBudget));
+        } catch (IOException e) {
+            throw new PerpRpcFailedException("Failed to send transaction", e);
+        }
+    }
+
+    public CallArgObjectArg getClock() {
+        return this.getSharedObject(SuiSystem.SUI_CLOCK_OBJECT_ID, false);
+    }
+
     public CallArgObjectArg getProtocolConfig() {
         return this.getSharedObject(perpConfig.protocolConfig(), false);
     }
 
+    public CallArgObjectArg getPerpetual(String symbol) {
+        TradingPairResponse tradingPair = marketProvider.getTradingPair(symbol);
+        return this.getSharedObject(tradingPair.getPerpId(), true);
+    }
+
     public CallArgObjectArg getSubAccounts() {
-        return this.getSharedObject(perpConfig.subAccounts(), true);
+        return this.getSharedObject(perpConfig.subAccounts(), false);
     }
 
     public CallArgObjectArg getBank() {
@@ -213,6 +284,19 @@ public class PerpOnChainClient {
 
     public CallArgObjectArg getTxIndexer() {
         return this.getSharedObject(perpConfig.txIndexer(), true);
+    }
+
+    public CallArgObjectArg getPriceOracleObject(String symbol) {
+        PythNetwork pythNetwork = perpConfig.pythNetwork();
+        if (pythNetwork.equals(PythNetwork.MAINNET)) {
+            TradingPairResponse tradingPair = marketProvider.getTradingPair(symbol);
+            String feedObjectId = pythClient.getFeedObjectId(tradingPair.getPriceIdentifierId(), pythNetwork.getConfig().pythStateId());
+            return this.getSharedObject(feedObjectId, true);
+        } else if (pythNetwork.equals(PythNetwork.TESTNET)) {
+            return this.getSharedObject(PerpPythTestnet.FEED_OBJECTS.get(symbol), true);
+        } else {
+            throw new IllegalArgumentException("Unknown pyth network");
+        }
     }
 
     /**

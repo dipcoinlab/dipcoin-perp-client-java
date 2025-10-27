@@ -13,16 +13,22 @@
 
 package io.dipcoin.sui.perp.constant;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * @author : Same
- * @datetime : 2025/10/22 13:23
- * @Description : perp constant
+ * @datetime : 2025/10/24 14:28
+ * @Description : perp pyth testnet
  */
-public interface PerpConstant {
+public class PerpPythTestnet {
 
-    /**
-     * onboarding message
-     */
-    String ONBOARDING_MSG = "{\"onboardingUrl\":\"dipcoin.io\"}";
+    public static final Map<String, String> FEED_OBJECTS = new ConcurrentHashMap<>();
+
+    static {
+        FEED_OBJECTS.put("ETH-PERP", "0x362f009be96a1d74ff76156cec96876b89aa09529c1261d491751903ee798e4d");
+        FEED_OBJECTS.put("BTC-PERP", "0x8c65003d5d1a529adc4be78cfceb3855ef529d9807fcd58b06caab0a96caa806");
+        FEED_OBJECTS.put("SUI-PERP", "0x1e9be81a16c22896f2b4852e8b5c5e59d247c5566dee7b390477f4b7f70914df");
+    }
 
 }

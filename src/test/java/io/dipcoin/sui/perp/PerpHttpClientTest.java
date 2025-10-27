@@ -90,9 +90,9 @@ public class PerpHttpClientTest {
         PlaceOrderRequest request = new PlaceOrderRequest();
         request.setSymbol("ETH-PERP")
                 .setMarket("0x44e07a44992498d610f455310b839d9f29aca7657bce65aa8d614b240900a5c7")
-                .setPrice(new BigInteger("3850").multiply(BigInteger.TEN.pow(18)))
-                .setQuantity(new BigInteger("1").multiply(BigInteger.TEN.pow(18)))
-                .setSide(OrderSide.BUY.getCode())
+                .setPrice(new BigInteger("3940").multiply(BigInteger.TEN.pow(18)))
+                .setQuantity(new BigInteger("1").multiply(BigInteger.TEN.pow(17)))
+                .setSide(OrderSide.SELL.getCode())
                 .setOrderType(OrderType.LIMIT.getCode())
                 .setLeverage(BigInteger.ONE.multiply(BigInteger.TEN.pow(18)))
                 .setSalt(String.valueOf(System.currentTimeMillis()))
@@ -116,6 +116,19 @@ public class PerpHttpClientTest {
                 .setSignature(OrderUtil.getSignature(OrderUtil.getSerializedCancelOrder(orders), perpHttpClient.getSubAccount()));
 
         CancelOrderResponse response = perpHttpClient.cancelOrder(request);
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    @Tag("suite")
+    void testAddMargin() {
+        // addmargin 200 testUSDC
+        String symbol = "ETH-PERP";
+        BigInteger amount = new BigInteger("200").multiply(BigInteger.TEN.pow(18));
+        // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
+        // gas limit 0.1 SUI (BigInteger.TEN.pow(8))1000
+        SuiTransactionBlockResponse response = perpHttpClient.addMargin(symbol, amount, 1000L, BigInteger.TEN.pow(8));
+        // https://testnet.suivision.xyz/txblock/HfimayLEjWDQkntX1kUxMheiKNoDAG8bvBSBLJA8hhHk
         log.info("Response: {}", response);
     }
 

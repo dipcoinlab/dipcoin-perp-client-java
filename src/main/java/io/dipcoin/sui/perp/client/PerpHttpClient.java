@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.dipcoin.sui.crypto.SuiKeyPair;
 import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
 import io.dipcoin.sui.perp.client.core.AbstractHttpClient;
+import io.dipcoin.sui.perp.client.core.MarketProvider;
 import io.dipcoin.sui.perp.constant.PerpConstant;
 import io.dipcoin.sui.perp.constant.PerpPath;
 import io.dipcoin.sui.perp.enums.PerpNetwork;
@@ -46,9 +47,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * @datetime : 2025/10/21 10:51
  * @Description :
  */
-public class PerpHttpClient extends AbstractHttpClient {
+public class PerpHttpClient extends AbstractHttpClient implements MarketProvider {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * trading pairs map
+     */
+    Map<String, TradingPairResponse> TRADING_PAIRS = new ConcurrentHashMap<>();
 
     private final PerpOnChainClient perpOnChainClient;
 
@@ -68,7 +74,7 @@ public class PerpHttpClient extends AbstractHttpClient {
 
     public PerpHttpClient(PerpNetwork perpNetwork, SuiClient suiClient, SuiKeyPair mainAccount) {
         this.perpConfig = perpNetwork.getConfig();
-        this.perpOnChainClient = new PerpOnChainClient(suiClient, perpConfig);
+        this.perpOnChainClient = new PerpOnChainClient(suiClient, perpConfig, this);
         this.mainAccount = mainAccount;
         this.subAccount = mainAccount;
         String address = mainAccount.address();
@@ -81,7 +87,7 @@ public class PerpHttpClient extends AbstractHttpClient {
 
     public PerpHttpClient(PerpNetwork perpNetwork, SuiClient suiClient, SuiKeyPair mainAccount, SuiKeyPair subAccount) {
         this.perpConfig = perpNetwork.getConfig();
-        this.perpOnChainClient = new PerpOnChainClient(suiClient, perpConfig);
+        this.perpOnChainClient = new PerpOnChainClient(suiClient, perpConfig, this);
         this.mainAccount = mainAccount;
         this.subAccount = subAccount;
         String mainAddress = mainAccount.address();
@@ -206,11 +212,7 @@ public class PerpHttpClient extends AbstractHttpClient {
         }
     }
 
-    /**
-     * get trading pairs by symbol
-     * @param symbol
-     * @return
-     */
+    @Override
     public TradingPairResponse getTradingPair(String symbol) {
         if (null == symbol || symbol.isEmpty()) {
             throw new IllegalArgumentException("symbol is null or empty!");
@@ -263,6 +265,18 @@ public class PerpHttpClient extends AbstractHttpClient {
      */
     public SuiTransactionBlockResponse withdraw(BigInteger amount, long gasPrice, BigInteger gasBudget) {
         return perpOnChainClient.withdraw(mainAccount, amount, gasPrice, gasBudget);
+    }
+
+    /**
+     * addMargin
+     * @param symbol
+     * @param amount
+     * @param gasPrice
+     * @param gasBudget
+     * @return
+     */
+    public SuiTransactionBlockResponse addMargin(String symbol, BigInteger amount, long gasPrice, BigInteger gasBudget) {
+        return perpOnChainClient.addMargin(mainAccount, mainAddress, symbol, amount, gasPrice, gasBudget);
     }
 
     public SuiKeyPair getMainKeyPair() {
