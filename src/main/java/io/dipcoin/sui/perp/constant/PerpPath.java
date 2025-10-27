@@ -38,6 +38,12 @@ public interface PerpPath {
 
     String BALANCE_CHANGES = "/perp-trade-api/history/balance-changes";
 
+    String TICKER = "/perp-market-api/ticker";
+
+    String ORDER_BOOK = "/perp-market-api/orderBook";
+
+    String ORACLE = "/perp-market-api/oracle";
+
     String TRADING_PAIR = "/perp-market-api/list";
 
 }

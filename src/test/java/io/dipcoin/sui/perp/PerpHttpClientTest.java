@@ -82,7 +82,6 @@ public class PerpHttpClientTest {
     }
 
     @Test
-    @Tag("suite")
     void testPlaceOrder() {
         // place order
         PlaceOrderRequest request = new PlaceOrderRequest();
@@ -143,14 +142,12 @@ public class PerpHttpClientTest {
     }
 
     @Test
-    @Tag("suite")
     void testPositions() {
         List<PositionResponse> response = perpHttpClient.positions();
         log.info("Response: {}", response);
     }
 
     @Test
-    @Tag("suite")
     void testOrders() {
         OrdersRequest request = new OrdersRequest();
         request.setSymbol("ETH-PERP")
@@ -161,14 +158,12 @@ public class PerpHttpClientTest {
     }
 
     @Test
-    @Tag("suite")
     void testAccount() {
         AccountResponse response = perpHttpClient.account();
         log.info("Response: {}", response);
     }
 
     @Test
-    @Tag("suite")
     void testHistoryOrders() {
         HistoryOrdersRequest request = new HistoryOrdersRequest();
         long now = System.currentTimeMillis();
@@ -182,7 +177,6 @@ public class PerpHttpClientTest {
     }
 
     @Test
-    @Tag("suite")
     void testFundingSettlements() {
         PageRequest request = new PageRequest();
         request.setPageNum(1)
@@ -193,7 +187,6 @@ public class PerpHttpClientTest {
     }
 
     @Test
-    @Tag("suite")
     void testBalanceChanges() {
         PageRequest request = new PageRequest();
         request.setPageNum(1)
@@ -204,7 +197,30 @@ public class PerpHttpClientTest {
     }
 
     @Test
-    @Tag("suite")
+    void testTicker() {
+        SymbolRequest request = new SymbolRequest();
+        request.setSymbol("ETH-PERP");
+        TickerResponse response = perpHttpClient.ticker(request);
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    void testOrderBook() {
+        SymbolRequest request = new SymbolRequest();
+        request.setSymbol("ETH-PERP");
+        OrderBookResponse response = perpHttpClient.orderBook(request);
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    void testOracle() {
+        SymbolRequest request = new SymbolRequest();
+        request.setSymbol("ETH-PERP");
+        BigInteger response = perpHttpClient.oracle(request);
+        log.info("Response: {}", response);
+    }
+
+    @Test
     void testTradingPair() {
         List<TradingPairResponse> response = perpHttpClient.tradingPair();
         log.info("Response: {}", response);

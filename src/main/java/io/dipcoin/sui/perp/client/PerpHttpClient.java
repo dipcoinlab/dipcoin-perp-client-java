@@ -239,6 +239,48 @@ public class PerpHttpClient extends AbstractHttpClient implements MarketProvider
     }
 
     /**
+     * retrieve ticker information for the trading pair
+     * @param request
+     * @return
+     */
+    public TickerResponse ticker(SymbolRequest request) {
+        ApiResponse<TickerResponse> response = get(perpConfig.perpEndpoint() + PerpPath.TICKER, this.toQueryParams(request), new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to orderBook, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * retrieve the order book for the trading pair, with asks sorted in ascending order and bids sorted in descending order
+     * @param request
+     * @return
+     */
+    public OrderBookResponse orderBook(SymbolRequest request) {
+        ApiResponse<OrderBookResponse> response = get(perpConfig.perpEndpoint() + PerpPath.ORDER_BOOK, this.toQueryParams(request), new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to orderBook, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * retrieve the oracle price for the trading pair
+     * @param request
+     * @return
+     */
+    public BigInteger oracle(SymbolRequest request) {
+        ApiResponse<BigInteger> response = get(perpConfig.perpEndpoint() + PerpPath.ORACLE, this.toQueryParams(request), new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to tradingPair, cause : " + response.getMessage());
+        }
+    }
+
+    /**
      * get all trading pairs
      * @return
      */
