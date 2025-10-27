@@ -27,10 +27,7 @@ import io.dipcoin.sui.perp.exception.PerpHttpException;
 import io.dipcoin.sui.perp.model.ApiResponse;
 import io.dipcoin.sui.perp.model.PageResponse;
 import io.dipcoin.sui.perp.model.PerpConfig;
-import io.dipcoin.sui.perp.model.request.AuthorizationRequest;
-import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
-import io.dipcoin.sui.perp.model.request.OrdersRequest;
-import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
+import io.dipcoin.sui.perp.model.request.*;
 import io.dipcoin.sui.perp.model.response.*;
 import io.dipcoin.sui.perp.util.OrderUtil;
 import io.dipcoin.sui.protocol.SuiClient;
@@ -177,8 +174,8 @@ public class PerpHttpClient extends AbstractHttpClient implements MarketProvider
      * @param request
      * @return
      */
-    public PageResponse<List<OrdersResponse>> orders(OrdersRequest request) {
-        ApiResponse<PageResponse<List<OrdersResponse>>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.ORDERS, this.toQueryParams(request), new TypeReference<>() {});
+    public PageResponse<OrdersResponse> orders(OrdersRequest request) {
+        ApiResponse<PageResponse<OrdersResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.ORDERS, this.toQueryParams(request), new TypeReference<>() {});
         if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
             return response.getData();
         } else {
@@ -195,7 +192,49 @@ public class PerpHttpClient extends AbstractHttpClient implements MarketProvider
         if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
             return response.getData();
         } else {
-            throw new PerpHttpException("Failed to orders, cause : " + response.getMessage());
+            throw new PerpHttpException("Failed to account, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * history orders
+     * @param request
+     * @return
+     */
+    public PageResponse<HistoryOrdersResponse> historyOrders(HistoryOrdersRequest request) {
+        ApiResponse<PageResponse<HistoryOrdersResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.HISTORY_ORDERS, this.toQueryParams(request), new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to historyOrders, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * history funding settlements
+     * @param request
+     * @return
+     */
+    public PageResponse<FundingSettlementsResponse> fundingSettlements(PageRequest request) {
+        ApiResponse<PageResponse<FundingSettlementsResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.FUNDING_SETTLEMENTS, this.toQueryParams(request), new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to fundingSettlements, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * history balance changes
+     * @param request
+     * @return
+     */
+    public PageResponse<BalanceChangesResponse> balanceChanges(PageRequest request) {
+        ApiResponse<PageResponse<BalanceChangesResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.BALANCE_CHANGES, this.toQueryParams(request), new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to balanceChanges, cause : " + response.getMessage());
         }
     }
 
@@ -208,7 +247,7 @@ public class PerpHttpClient extends AbstractHttpClient implements MarketProvider
         if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
             return response.getData();
         } else {
-            throw new PerpHttpException("Failed to orders, cause : " + response.getMessage());
+            throw new PerpHttpException("Failed to tradingPair, cause : " + response.getMessage());
         }
     }
 

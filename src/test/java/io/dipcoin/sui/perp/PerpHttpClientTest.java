@@ -20,9 +20,7 @@ import io.dipcoin.sui.perp.enums.OrderSide;
 import io.dipcoin.sui.perp.enums.OrderType;
 import io.dipcoin.sui.perp.enums.PerpNetwork;
 import io.dipcoin.sui.perp.model.PageResponse;
-import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
-import io.dipcoin.sui.perp.model.request.OrdersRequest;
-import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
+import io.dipcoin.sui.perp.model.request.*;
 import io.dipcoin.sui.perp.model.response.*;
 import io.dipcoin.sui.perp.util.OrderUtil;
 import io.dipcoin.sui.perp.wallet.WalletKey;
@@ -158,7 +156,7 @@ public class PerpHttpClientTest {
         request.setSymbol("ETH-PERP")
                 .setPageNum(1)
                 .setPageSize(20);
-        PageResponse<List<OrdersResponse>> response = perpHttpClient.orders(request);
+        PageResponse<OrdersResponse> response = perpHttpClient.orders(request);
         log.info("Response: {}", response);
     }
 
@@ -166,6 +164,42 @@ public class PerpHttpClientTest {
     @Tag("suite")
     void testAccount() {
         AccountResponse response = perpHttpClient.account();
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    @Tag("suite")
+    void testHistoryOrders() {
+        HistoryOrdersRequest request = new HistoryOrdersRequest();
+        long now = System.currentTimeMillis();
+        request.setSymbol("ETH-PERP")
+                .setPageNum(1)
+                .setPageSize(20)
+                .setBeginTime(now - 60 * 24 * 60 * 1000L)
+                .setEndTime(now);
+        PageResponse<HistoryOrdersResponse> response = perpHttpClient.historyOrders(request);
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    @Tag("suite")
+    void testFundingSettlements() {
+        PageRequest request = new PageRequest();
+        request.setPageNum(1)
+                .setPageSize(20)
+                .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
+        PageResponse<FundingSettlementsResponse> response = perpHttpClient.fundingSettlements(request);
+        log.info("Response: {}", response);
+    }
+
+    @Test
+    @Tag("suite")
+    void testBalanceChanges() {
+        PageRequest request = new PageRequest();
+        request.setPageNum(1)
+                .setPageSize(20)
+                .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
+        PageResponse<BalanceChangesResponse> response = perpHttpClient.balanceChanges(request);
         log.info("Response: {}", response);
     }
 
