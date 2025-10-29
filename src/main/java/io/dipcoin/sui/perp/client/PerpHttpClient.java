@@ -13,379 +13,161 @@
 
 package io.dipcoin.sui.perp.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.dipcoin.sui.crypto.SuiKeyPair;
-import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
+import io.dipcoin.sui.perp.client.auth.AuthSession;
 import io.dipcoin.sui.perp.client.core.AbstractHttpClient;
-import io.dipcoin.sui.perp.client.core.MarketProvider;
-import io.dipcoin.sui.perp.constant.PerpConstant;
-import io.dipcoin.sui.perp.constant.PerpPath;
+import io.dipcoin.sui.perp.client.core.PerpAuthorization;
+import io.dipcoin.sui.perp.client.core.PerpClient;
 import io.dipcoin.sui.perp.enums.PerpNetwork;
-import io.dipcoin.sui.perp.exception.ErrorCode;
-import io.dipcoin.sui.perp.exception.PerpHttpException;
-import io.dipcoin.sui.perp.model.ApiResponse;
 import io.dipcoin.sui.perp.model.PageResponse;
-import io.dipcoin.sui.perp.model.PerpConfig;
 import io.dipcoin.sui.perp.model.request.*;
 import io.dipcoin.sui.perp.model.response.*;
-import io.dipcoin.sui.perp.util.OrderUtil;
-import io.dipcoin.sui.protocol.SuiClient;
-import io.dipcoin.sui.protocol.http.HttpService;
 
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author : Same
  * @datetime : 2025/10/21 10:51
  * @Description :
  */
-public class PerpHttpClient extends AbstractHttpClient implements MarketProvider {
+public class PerpHttpClient extends AbstractHttpClient implements PerpClient {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private final PerpAuthorization perpAuthorization;
 
-    /**
-     * trading pairs map
-     */
-    Map<String, TradingPairResponse> TRADING_PAIRS = new ConcurrentHashMap<>();
+    private final PerpMarketClient perpMarketClient;
 
-    private final PerpOnChainClient perpOnChainClient;
+    private final PerpUserClient perpUserClient;
 
-    private final PerpConfig perpConfig;
+    private final PerpTradeClient perpTradeClient;
+
+    private final String mainAddress;
+
+    private final String subAddress;
 
     private final SuiKeyPair mainAccount;
 
     private final SuiKeyPair subAccount;
 
-    public PerpHttpClient(PerpNetwork perpNetwork, SuiKeyPair mainAccount) {
-        this(perpNetwork, SuiClient.build(new HttpService(perpNetwork.getConfig().suiRpc())), mainAccount);
-    }
+    public PerpHttpClient(PerpNetwork perpNetwork, SuiKeyPair main, SuiKeyPair sub) {
+        this.perpAuthorization = new PerpAuthorization(perpNetwork);
+        AuthSession mainAuth = authorize(main);
+        AuthSession subAuth = authorize(sub);
 
-    public PerpHttpClient(PerpNetwork perpNetwork, SuiKeyPair mainAccount, SuiKeyPair subAccount) {
-        this(perpNetwork, SuiClient.build(new HttpService(perpNetwork.getConfig().suiRpc())), mainAccount, subAccount);
-    }
-
-    public PerpHttpClient(PerpNetwork perpNetwork, SuiClient suiClient, SuiKeyPair mainAccount) {
-        this.perpConfig = perpNetwork.getConfig();
-        this.perpOnChainClient = new PerpOnChainClient(suiClient, perpConfig, this);
-        this.mainAccount = mainAccount;
-        this.subAccount = mainAccount;
-        String address = mainAccount.address();
-        super.setAddress(address, address);
-        AuthorizationResponse authorize = this.authorize(mainAccount, address);
-        String token = authorize.getToken();
-        super.setMainAuthHeader(token);
-        super.setSubAuthHeader(token);
-    }
-
-    public PerpHttpClient(PerpNetwork perpNetwork, SuiClient suiClient, SuiKeyPair mainAccount, SuiKeyPair subAccount) {
-        this.perpConfig = perpNetwork.getConfig();
-        this.perpOnChainClient = new PerpOnChainClient(suiClient, perpConfig, this);
-        this.mainAccount = mainAccount;
-        this.subAccount = subAccount;
-        String mainAddress = mainAccount.address();
-        String subAddress = subAccount.address();
-        super.setAddress(mainAddress, subAddress);
-        AuthorizationResponse mainAuthorize = this.authorize(mainAccount, mainAddress);
-        super.setMainAuthHeader(mainAuthorize.getToken());
-        AuthorizationResponse subAuthorize = this.authorize(subAccount, subAddress);
-        super.setSubAuthHeader(subAuthorize.getToken());
+        this.perpMarketClient = new PerpMarketClient(perpNetwork);
+        this.perpUserClient = new PerpUserClient(perpNetwork, mainAuth);
+        this.perpTradeClient = new PerpTradeClient(perpNetwork, subAuth);
+        this.mainAddress = main.address();
+        this.subAddress = sub.address();
+        this.mainAccount = main;
+        this.subAccount = sub;
     }
 
     // ------------------------- authorize API -------------------------
 
-    /**
-     * authorize
-     * @param request
-     * @return
-     */
+    @Override
     public AuthorizationResponse authorize(AuthorizationRequest request) {
-        ApiResponse<AuthorizationResponse> response = post(request, perpConfig.perpEndpoint() + PerpPath.AUTHORIZE, new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to authorize, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * authorize
-     * @return
-     */
-    public AuthorizationResponse authorize(SuiKeyPair suiKeyPair, String address) {
-        String signature = OrderUtil.getSignature(PerpConstant.ONBOARDING_MSG, suiKeyPair);
-        return authorize(new AuthorizationRequest()
-                .setSignature(signature)
-                .setUserAddress(address)
-                .setIsTermAccepted(true));
-    }
-
-    // ------------------------- write API -------------------------
-
-    /**
-     * place order
-     * @param request
-     * @return
-     */
-    public String placeOrder(PlaceOrderRequest request) {
-        ApiResponse<String> response = postWithSubAuth(request, perpConfig.perpEndpoint() + PerpPath.PLACE_ORDER, new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to placeOrder, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * cancel order
-     * @param request
-     * @return
-     */
-    public CancelOrderResponse cancelOrder(CancelOrderRequest request) {
-        ApiResponse<CancelOrderResponse> response = postWithSubAuth(request, perpConfig.perpEndpoint() + PerpPath.CANCEL_ORDER, new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to cancelOrder, cause : " + response.getMessage());
-        }
-    }
-
-    // ------------------------- query API -------------------------
-
-    /**
-     * positions
-     * @return
-     */
-    public List<PositionResponse> positions() {
-        ApiResponse<List<PositionResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.POSITIONS, null, new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to positions, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * current orders
-     * @param request
-     * @return
-     */
-    public PageResponse<OrdersResponse> orders(OrdersRequest request) {
-        ApiResponse<PageResponse<OrdersResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.ORDERS, this.toQueryParams(request), new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to orders, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * account info
-     * @return
-     */
-    public AccountResponse account() {
-        ApiResponse<AccountResponse> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.ACCOUNT, null, new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to account, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * history orders
-     * @param request
-     * @return
-     */
-    public PageResponse<HistoryOrdersResponse> historyOrders(HistoryOrdersRequest request) {
-        ApiResponse<PageResponse<HistoryOrdersResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.HISTORY_ORDERS, this.toQueryParams(request), new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to historyOrders, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * history funding settlements
-     * @param request
-     * @return
-     */
-    public PageResponse<FundingSettlementsResponse> fundingSettlements(PageRequest request) {
-        ApiResponse<PageResponse<FundingSettlementsResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.FUNDING_SETTLEMENTS, this.toQueryParams(request), new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to fundingSettlements, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * history balance changes
-     * @param request
-     * @return
-     */
-    public PageResponse<BalanceChangesResponse> balanceChanges(PageRequest request) {
-        ApiResponse<PageResponse<BalanceChangesResponse>> response = getWithMainAuth(perpConfig.perpEndpoint() + PerpPath.BALANCE_CHANGES, this.toQueryParams(request), new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to balanceChanges, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * retrieve ticker information for the trading pair
-     * @param request
-     * @return
-     */
-    public TickerResponse ticker(SymbolRequest request) {
-        ApiResponse<TickerResponse> response = get(perpConfig.perpEndpoint() + PerpPath.TICKER, this.toQueryParams(request), new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to orderBook, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * retrieve the order book for the trading pair, with asks sorted in ascending order and bids sorted in descending order
-     * @param request
-     * @return
-     */
-    public OrderBookResponse orderBook(SymbolRequest request) {
-        ApiResponse<OrderBookResponse> response = get(perpConfig.perpEndpoint() + PerpPath.ORDER_BOOK, this.toQueryParams(request), new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to orderBook, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * retrieve the oracle price for the trading pair
-     * @param request
-     * @return
-     */
-    public BigInteger oracle(SymbolRequest request) {
-        ApiResponse<BigInteger> response = get(perpConfig.perpEndpoint() + PerpPath.ORACLE, this.toQueryParams(request), new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to tradingPair, cause : " + response.getMessage());
-        }
-    }
-
-    /**
-     * get all trading pairs
-     * @return
-     */
-    public List<TradingPairResponse> tradingPair() {
-        ApiResponse<List<TradingPairResponse>> response = get(perpConfig.perpEndpoint() + PerpPath.TRADING_PAIR, null, new TypeReference<>() {});
-        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
-            return response.getData();
-        } else {
-            throw new PerpHttpException("Failed to tradingPair, cause : " + response.getMessage());
-        }
+        return perpAuthorization.authorize(request);
     }
 
     @Override
-    public TradingPairResponse getTradingPair(String symbol) {
-        if (null == symbol || symbol.isEmpty()) {
-            throw new IllegalArgumentException("symbol is null or empty!");
-        }
-        TradingPairResponse tradingPair = TRADING_PAIRS.get(symbol);
-        if (tradingPair != null) {
-            return tradingPair;
-        }
-
-        List<TradingPairResponse> response = this.tradingPair();
-        if (response == null || response.isEmpty()) {
-            throw new PerpHttpException("remote service internal error!");
-        }
-        for (TradingPairResponse tradingPairResponse : response) {
-            TRADING_PAIRS.put(tradingPairResponse.getSymbol(), tradingPairResponse);
-        }
-        return TRADING_PAIRS.get(symbol);
+    public AuthSession authorize(SuiKeyPair suiKeyPair) {
+        return perpAuthorization.authorize(suiKeyPair);
     }
 
-    // ------------------------- on chain API -------------------------
+    // ------------------------- trade API -------------------------
 
-    /**
-     * set sub account
-     * @param subAddress
-     * @param gasPrice
-     * @param gasBudget
-     * @return
-     */
-    public SuiTransactionBlockResponse setSubAccount(String subAddress, long gasPrice, BigInteger gasBudget) {
-        return perpOnChainClient.setSubAccount(mainAccount, subAddress, gasPrice, gasBudget);
+    @Override
+    public String placeOrder(PlaceOrderRequest request) {
+        return perpTradeClient.placeOrder(request);
     }
 
-    /**
-     * deposit
-     * @param amount
-     * @param gasPrice
-     * @param gasBudget
-     * @return
-     */
-    public SuiTransactionBlockResponse deposit(BigInteger amount, long gasPrice, BigInteger gasBudget) {
-        return perpOnChainClient.deposit(mainAccount, amount, gasPrice, gasBudget);
+    @Override
+    public CancelOrderResponse cancelOrder(CancelOrderRequest request) {
+        return perpTradeClient.cancelOrder(request);
     }
 
-    /**
-     * withdraw
-     * @param amount
-     * @param gasPrice
-     * @param gasBudget
-     * @return
-     */
-    public SuiTransactionBlockResponse withdraw(BigInteger amount, long gasPrice, BigInteger gasBudget) {
-        return perpOnChainClient.withdraw(mainAccount, amount, gasPrice, gasBudget);
+    // ------------------------- user API -------------------------
+
+    @Override
+    public List<PositionResponse> positions() {
+        return perpUserClient.positions();
     }
 
-    /**
-     * addMargin
-     * @param symbol
-     * @param amount
-     * @param gasPrice
-     * @param gasBudget
-     * @return
-     */
-    public SuiTransactionBlockResponse addMargin(String symbol, BigInteger amount, long gasPrice, BigInteger gasBudget) {
-        return perpOnChainClient.addMargin(mainAccount, mainAddress, symbol, amount, gasPrice, gasBudget);
+    @Override
+    public PageResponse<OrdersResponse> orders(OrdersRequest request) {
+        return perpUserClient.orders(request);
     }
 
-    public SuiKeyPair getMainKeyPair() {
+    @Override
+    public AccountResponse account() {
+        return perpUserClient.account();
+    }
+
+    @Override
+    public PageResponse<HistoryOrdersResponse> historyOrders(HistoryOrdersRequest request) {
+        return perpUserClient.historyOrders(request);
+    }
+
+    @Override
+    public PageResponse<FundingSettlementsResponse> fundingSettlements(PageRequest request) {
+        return perpUserClient.fundingSettlements(request);
+    }
+
+    @Override
+    public PageResponse<BalanceChangesResponse> balanceChanges(PageRequest request) {
+        return perpUserClient.balanceChanges(request);
+    }
+
+    // ------------------------- market API -------------------------
+
+    @Override
+    public TickerResponse ticker(SymbolRequest request) {
+        return perpMarketClient.ticker(request);
+    }
+
+    @Override
+    public OrderBookResponse orderBook(SymbolRequest request) {
+        return perpMarketClient.orderBook(request);
+    }
+
+    @Override
+    public BigInteger oracle(SymbolRequest request) {
+        return perpMarketClient.oracle(request);
+    }
+
+    @Override
+    public List<TradingPairResponse> tradingPair() {
+        return perpMarketClient.tradingPair();
+    }
+
+    @Override
+    public String getMarketPerpId(String symbol) {
+        return perpMarketClient.getMarketPerpId(symbol);
+    }
+
+    @Override
+    public String getPythFeedId(String symbol) {
+        return perpMarketClient.getPythFeedId(symbol);
+    }
+
+    @Override
+    public SuiKeyPair getMainAccount() {
         return mainAccount;
     }
 
+    @Override
     public SuiKeyPair getSubAccount() {
         return subAccount;
     }
 
-    /**
-     * convert to queryParams
-     * @param o
-     * @return
-     */
-    private Map<String, String> toQueryParams(Object o) {
-        Map<String, String> queryParams = new HashMap<>();
-        if (o == null) {
-            return queryParams;
-        }
-
-        Map<String, Object> map = objectMapper.convertValue(o, Map.class);
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (entry.getValue() != null) {
-                queryParams.put(entry.getKey(), entry.getValue().toString());
-            }
-        }
-        return queryParams;
+    @Override
+    public String getMainAddress() {
+        return mainAddress;
     }
 
+    @Override
+    public String getSubAddress() {
+        return subAddress;
+    }
 }

@@ -11,22 +11,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.client.core;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import io.dipcoin.sui.perp.client.auth.AuthSession;
-
-import java.util.Map;
+package io.dipcoin.sui.perp.client.chain;
 
 /**
  * @author : Same
- * @datetime : 2025/10/22 13:48
- * @Description : 
+ * @datetime : 2025/10/28 13:56
+ * @Description : wallet manager service interface
  */
-public interface HttpClient {
+public interface WalletService {
 
-    <T> T post(Object request, String url, AuthSession auth, TypeReference<T> typeReference);
-
-    <T> T get(String url, Map<String, String> queryParams, AuthSession auth, TypeReference<T> typeReference);
+    /**
+     * transaction signature
+     * @param address sender
+     * @param txData transaction bytes of bcs type
+     * @return signature
+     */
+    String sign(String address, byte[] txData);
 
 }

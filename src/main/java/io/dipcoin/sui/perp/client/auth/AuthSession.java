@@ -11,22 +11,23 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.client.core;
+package io.dipcoin.sui.perp.client.auth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import io.dipcoin.sui.perp.client.auth.AuthSession;
-
-import java.util.Map;
+import io.dipcoin.sui.perp.exception.PerpHttpException;
 
 /**
  * @author : Same
- * @datetime : 2025/10/22 13:48
- * @Description : 
+ * @datetime : 2025/10/28 16:49
+ * @Description : encapsulate authorization information
  */
-public interface HttpClient {
+public record AuthSession(String address, String token) {
 
-    <T> T post(Object request, String url, AuthSession auth, TypeReference<T> typeReference);
-
-    <T> T get(String url, Map<String, String> queryParams, AuthSession auth, TypeReference<T> typeReference);
+    public boolean isValid() {
+        if (token != null && !token.isEmpty() && address != null && !address.isEmpty()) {
+            return true;
+        } else {
+            throw new PerpHttpException("Missing account auth token or account address!");
+        }
+    }
 
 }

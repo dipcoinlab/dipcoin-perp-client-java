@@ -13,8 +13,8 @@
 
 package io.dipcoin.sui.perp;
 
-import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
 import io.dipcoin.sui.perp.client.PerpHttpClient;
+import io.dipcoin.sui.perp.client.core.PerpClient;
 import io.dipcoin.sui.perp.config.IntervalExtension;
 import io.dipcoin.sui.perp.enums.OrderSide;
 import io.dipcoin.sui.perp.enums.OrderType;
@@ -23,7 +23,7 @@ import io.dipcoin.sui.perp.model.PageResponse;
 import io.dipcoin.sui.perp.model.request.*;
 import io.dipcoin.sui.perp.model.response.*;
 import io.dipcoin.sui.perp.util.OrderUtil;
-import io.dipcoin.sui.perp.wallet.WalletKey;
+import io.dipcoin.sui.perp.wallet.WalletKeyReal;
 import io.dipcoin.sui.protocol.SuiClient;
 import io.dipcoin.sui.protocol.http.HttpService;
 import lombok.extern.slf4j.Slf4j;
@@ -32,9 +32,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author : Same
@@ -47,39 +48,17 @@ public class PerpHttpClientTest {
 
     protected SuiClient suiClient;
 
-    protected PerpHttpClient perpHttpClient;
+    protected PerpClient perpClient;
 
     @BeforeEach
     protected void setUp() {
         PerpNetwork perpNetwork = PerpNetwork.TESTNET;
         HttpService suiService = new HttpService(perpNetwork.getConfig().suiRpc());
         this.suiClient = SuiClient.build(suiService);
-        this.perpHttpClient = new PerpHttpClient(perpNetwork, WalletKey.mainKeyPair, WalletKey.subKeyPair);
+        this.perpClient = new PerpHttpClient(perpNetwork, WalletKeyReal.mainKeyPair, WalletKeyReal.subKeyPair);
     }
 
-    @Test
-    @Tag("suite")
-    void testSetSubAccount() {
-        // set subAccount if u need
-        String subAccount = perpHttpClient.getSubAddress();
-        // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
-        // gas limit 0.1 SUI (BigInteger.TEN.pow(8))1000
-        SuiTransactionBlockResponse response = perpHttpClient.setSubAccount(subAccount, 1000L, BigInteger.TEN.pow(8));
-        // https://testnet.suivision.xyz/txblock/3TMtqn7QPRmdtUEhchX48ZVf2HpjNEH229D8qzytJsX5
-        log.info("Response: {}", response);
-    }
-
-    @Test
-    @Tag("suite")
-    void testDeposit() {
-        // deposit 10, 000 testUSDC
-        BigInteger amount = new BigInteger("10000").multiply(BigInteger.TEN.pow(6));
-        // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
-        // gas limit 0.1 SUI (BigInteger.TEN.pow(8))1000
-        SuiTransactionBlockResponse response = perpHttpClient.deposit(amount, 1000L, BigInteger.TEN.pow(8));
-        // https://testnet.suivision.xyz/txblock/CvS8oKVvHkjQHMtnatEgNQ1AjKd2upLAs429BimTgX6c
-        log.info("Response: {}", response);
-    }
+    // ------------------------- trade API -------------------------
 
     @Test
     void testPlaceOrder() {
@@ -93,10 +72,10 @@ public class PerpHttpClientTest {
                 .setOrderType(OrderType.LIMIT.getCode())
                 .setLeverage(BigInteger.ONE.multiply(BigInteger.TEN.pow(18)))
                 .setSalt(String.valueOf(System.currentTimeMillis()))
-                .setCreator(perpHttpClient.getMainAddress())
-                .setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), perpHttpClient.getSubAccount()));
+                .setCreator(perpClient.getMainAddress())
+                .setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), perpClient.getSubAccount()));
 
-        String orderHash = perpHttpClient.placeOrder(request);
+        String orderHash = perpClient.placeOrder(request);
         log.info("Response orderHash: {}", orderHash);
     }
 
@@ -109,41 +88,18 @@ public class PerpHttpClientTest {
         CancelOrderRequest request = new CancelOrderRequest();
         request.setSymbol("ETH-PERP")
                 .setOrderHashes(orders)
-                .setParentAddress(perpHttpClient.getMainAddress())
-                .setSignature(OrderUtil.getSignature(OrderUtil.getSerializedCancelOrder(orders), perpHttpClient.getSubAccount()));
+                .setParentAddress(perpClient.getMainAddress())
+                .setSignature(OrderUtil.getSignature(OrderUtil.getSerializedCancelOrder(orders), perpClient.getSubAccount()));
 
-        CancelOrderResponse response = perpHttpClient.cancelOrder(request);
+        CancelOrderResponse response = perpClient.cancelOrder(request);
         log.info("Response: {}", response);
     }
 
-    @Test
-    @Tag("suite")
-    void testAddMargin() {
-        // addmargin 200 testUSDC
-        String symbol = "ETH-PERP";
-        BigInteger amount = new BigInteger("200").multiply(BigInteger.TEN.pow(18));
-        // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
-        // gas limit 0.1 SUI (BigInteger.TEN.pow(8))1000
-        SuiTransactionBlockResponse response = perpHttpClient.addMargin(symbol, amount, 1000L, BigInteger.TEN.pow(8));
-        // https://testnet.suivision.xyz/txblock/HfimayLEjWDQkntX1kUxMheiKNoDAG8bvBSBLJA8hhHk
-        log.info("Response: {}", response);
-    }
-
-    @Test
-    @Tag("suite")
-    void testWithdraw() {
-        // withdraw 10, 000 testUSDC
-        BigInteger amount = new BigInteger("10000").multiply(BigInteger.TEN.pow(6));
-        // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
-        // gas limit 0.1 SUI (BigInteger.TEN.pow(8))1000
-        SuiTransactionBlockResponse response = perpHttpClient.withdraw(amount, 1000L, BigInteger.TEN.pow(8));
-        // https://testnet.suivision.xyz/txblock/FtyJ1nT4kwC8MDXwqrYVqEDePy2RquWhbf2xuGNJK7q9
-        log.info("Response: {}", response);
-    }
+    // ------------------------- user API -------------------------
 
     @Test
     void testPositions() {
-        List<PositionResponse> response = perpHttpClient.positions();
+        List<PositionResponse> response = perpClient.positions();
         log.info("Response: {}", response);
     }
 
@@ -153,13 +109,13 @@ public class PerpHttpClientTest {
         request.setSymbol("ETH-PERP")
                 .setPageNum(1)
                 .setPageSize(20);
-        PageResponse<OrdersResponse> response = perpHttpClient.orders(request);
+        PageResponse<OrdersResponse> response = perpClient.orders(request);
         log.info("Response: {}", response);
     }
 
     @Test
     void testAccount() {
-        AccountResponse response = perpHttpClient.account();
+        AccountResponse response = perpClient.account();
         log.info("Response: {}", response);
     }
 
@@ -172,7 +128,7 @@ public class PerpHttpClientTest {
                 .setPageSize(20)
                 .setBeginTime(now - 60 * 24 * 60 * 1000L)
                 .setEndTime(now);
-        PageResponse<HistoryOrdersResponse> response = perpHttpClient.historyOrders(request);
+        PageResponse<HistoryOrdersResponse> response = perpClient.historyOrders(request);
         log.info("Response: {}", response);
     }
 
@@ -182,7 +138,7 @@ public class PerpHttpClientTest {
         request.setPageNum(1)
                 .setPageSize(20)
                 .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
-        PageResponse<FundingSettlementsResponse> response = perpHttpClient.fundingSettlements(request);
+        PageResponse<FundingSettlementsResponse> response = perpClient.fundingSettlements(request);
         log.info("Response: {}", response);
     }
 
@@ -192,38 +148,64 @@ public class PerpHttpClientTest {
         request.setPageNum(1)
                 .setPageSize(20)
                 .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
-        PageResponse<BalanceChangesResponse> response = perpHttpClient.balanceChanges(request);
+        PageResponse<BalanceChangesResponse> response = perpClient.balanceChanges(request);
         log.info("Response: {}", response);
     }
+
+    // ------------------------- market API -------------------------
 
     @Test
     void testTicker() {
         SymbolRequest request = new SymbolRequest();
         request.setSymbol("ETH-PERP");
-        TickerResponse response = perpHttpClient.ticker(request);
+        TickerResponse response = perpClient.ticker(request);
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(TickerResponse.class);
     }
 
     @Test
     void testOrderBook() {
         SymbolRequest request = new SymbolRequest();
         request.setSymbol("ETH-PERP");
-        OrderBookResponse response = perpHttpClient.orderBook(request);
+        OrderBookResponse response = perpClient.orderBook(request);
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(OrderBookResponse.class);
     }
 
     @Test
     void testOracle() {
         SymbolRequest request = new SymbolRequest();
         request.setSymbol("ETH-PERP");
-        BigInteger response = perpHttpClient.oracle(request);
+        BigInteger response = perpClient.oracle(request);
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(BigInteger.class);
     }
 
     @Test
     void testTradingPair() {
-        List<TradingPairResponse> response = perpHttpClient.tradingPair();
+        List<TradingPairResponse> response = perpClient.tradingPair();
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(List.class);
+    }
+
+    @Test
+    void testGetMarketPerpId() {
+        String response = perpClient.getMarketPerpId("ETH-PERP");
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(String.class);
+    }
+
+    @Test
+    void testGetPythFeedId() {
+        String response = perpClient.getPythFeedId("ETH-PERP");
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(String.class);
     }
 
 }

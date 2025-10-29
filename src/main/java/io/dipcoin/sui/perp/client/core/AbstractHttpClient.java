@@ -16,7 +16,7 @@ package io.dipcoin.sui.perp.client.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.dipcoin.sui.perp.exception.PerpHttpException;
+import io.dipcoin.sui.perp.client.auth.AuthSession;
 import io.dipcoin.sui.perp.exception.PerpJsonParseException;
 import io.dipcoin.sui.perp.exception.PerpRpcFailedException;
 import okhttp3.*;
@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -46,14 +47,6 @@ public abstract class AbstractHttpClient implements HttpClient {
     private final ObjectMapper objectMapper;
 
     private OkHttpClient okHttpClient;
-
-    private String mainAuthToken;
-
-    private String subAuthToken;
-
-    protected String mainAddress;
-
-    protected String subAddress;
 
     public AbstractHttpClient() {
         this.objectMapper = new ObjectMapper();
@@ -82,56 +75,7 @@ public abstract class AbstractHttpClient implements HttpClient {
     }
 
     @Override
-    public <T> T post(Object request, String url, TypeReference<T> typeReference) {
-        String requestBody = null;
-        try {
-            requestBody = objectMapper.writeValueAsString(request);
-        } catch (JsonProcessingException e) {
-            throw new PerpJsonParseException("Unable to serialize request body", e);
-        }
-        Request httpRequest = new Request.Builder()
-                .url(url)
-                .post(RequestBody.create(requestBody, JSON))
-                .build();
-
-        try (Response response = okHttpClient.newCall(httpRequest).execute()) {
-            if (response.isSuccessful()) {
-                ResponseBody body = response.body();
-                if (body != null) {
-                    String responseBody = body.string();
-                    return objectMapper.readValue(responseBody, typeReference);
-                }
-            }
-            return null;
-        } catch (IOException e) {
-            throw new PerpRpcFailedException("Unable to send POST request", e);
-        }
-    }
-
-    @Override
-    public <T> T get(String url, Map<String, String> queryParams, TypeReference<T> typeReference) {
-        String finalUrl = this.buildUrlWithParams(url, queryParams);
-        Request httpRequest = new Request.Builder()
-                .url(finalUrl)
-                .get()
-                .build();
-
-        try (Response response = okHttpClient.newCall(httpRequest).execute()) {
-            if (response.isSuccessful()) {
-                ResponseBody body = response.body();
-                if (body != null) {
-                    String responseBody = body.string();
-                    return objectMapper.readValue(responseBody, typeReference);
-                }
-            }
-            return null;
-        } catch (IOException e) {
-            throw new PerpRpcFailedException("Unable to send GET request", e);
-        }
-    }
-
-    @Override
-    public <T> T postWithMainAuth(Object request, String url, TypeReference<T> typeReference) {
+    public <T> T post(Object request, String url, AuthSession auth, TypeReference<T> typeReference) {
         String requestBody = null;
         try {
             requestBody = objectMapper.writeValueAsString(request);
@@ -141,7 +85,7 @@ public abstract class AbstractHttpClient implements HttpClient {
         Request.Builder builder = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(requestBody, JSON));
-        addMainHeaders(builder);
+        this.buildUrlWithAuth(builder, auth);
         Request httpRequest = builder.build();
 
         try (Response response = okHttpClient.newCall(httpRequest).execute()) {
@@ -159,12 +103,12 @@ public abstract class AbstractHttpClient implements HttpClient {
     }
 
     @Override
-    public <T> T getWithMainAuth(String url, Map<String, String> queryParams, TypeReference<T> typeReference) {
+    public <T> T get(String url, Map<String, String> queryParams, AuthSession auth, TypeReference<T> typeReference) {
         String finalUrl = this.buildUrlWithParams(url, queryParams);
         Request.Builder builder = new Request.Builder()
                 .url(finalUrl)
                 .get();
-        addMainHeaders(builder);
+        this.buildUrlWithAuth(builder, auth);
         Request httpRequest = builder.build();
 
         try (Response response = okHttpClient.newCall(httpRequest).execute()) {
@@ -181,105 +125,24 @@ public abstract class AbstractHttpClient implements HttpClient {
         }
     }
 
-    @Override
-    public <T> T postWithSubAuth(Object request, String url, TypeReference<T> typeReference) {
-        String requestBody = null;
-        try {
-            requestBody = objectMapper.writeValueAsString(request);
-        } catch (JsonProcessingException e) {
-            throw new PerpJsonParseException("Unable to serialize request body", e);
-        }
-        Request.Builder builder = new Request.Builder()
-                .url(url)
-                .post(RequestBody.create(requestBody, JSON));
-        addSubHeaders(builder);
-        Request httpRequest = builder.build();
-
-        try (Response response = okHttpClient.newCall(httpRequest).execute()) {
-            if (response.isSuccessful()) {
-                ResponseBody body = response.body();
-                if (body != null) {
-                    String responseBody = body.string();
-                    return objectMapper.readValue(responseBody, typeReference);
-                }
-            }
-            return null;
-        } catch (IOException e) {
-            throw new PerpRpcFailedException("Unable to send POST request", e);
-        }
-    }
-
-    @Override
-    public <T> T getWithSubAuth(String url, Map<String, String> queryParams, TypeReference<T> typeReference) {
-        String finalUrl = this.buildUrlWithParams(url, queryParams);
-        Request.Builder builder = new Request.Builder()
-                .url(finalUrl)
-                .get();
-        addSubHeaders(builder);
-        Request httpRequest = builder.build();
-
-        try (Response response = okHttpClient.newCall(httpRequest).execute()) {
-            if (response.isSuccessful()) {
-                ResponseBody body = response.body();
-                if (body != null) {
-                    String responseBody = body.string();
-                    return objectMapper.readValue(responseBody, typeReference);
-                }
-            }
-            return null;
-        } catch (IOException e) {
-            throw new PerpRpcFailedException("Unable to send GET request", e);
-        }
-    }
-
-    public String getMainAddress() {
-        return mainAddress;
-    }
-
-    public String getSubAddress() {
-        return subAddress;
-    }
-
-    protected void setMainAuthHeader(String mainAuthToken) {
-        this.mainAuthToken = mainAuthToken;
-    }
-
-    protected void setSubAuthHeader(String subAuthToken) {
-        this.subAuthToken = subAuthToken;
-    }
-
-    protected void setAddress(String mainAddress) {
-        this.mainAddress = mainAddress;
-        this.subAddress = mainAddress;
-    }
-
-    protected void setAddress(String mainAddress, String subAddress) {
-        this.mainAddress = mainAddress;
-        this.subAddress = subAddress;
-    }
-
     /**
-     * add main acccount auth headers
-     * @param builder
+     * convert to queryParams
+     * @param o
+     * @return
      */
-    private void addMainHeaders(Request.Builder builder) {
-        if (mainAuthToken == null || mainAuthToken.isEmpty() || mainAddress == null || mainAddress.isEmpty()) {
-            throw new PerpHttpException("Missing main account auth token or main account address");
+    protected Map<String, String> toQueryParams(Object o) {
+        Map<String, String> queryParams = new HashMap<>();
+        if (o == null) {
+            return queryParams;
         }
-        builder.header(HEADER_AUTH, HEADER_PREFIX + mainAuthToken);
-        builder.header(HEADER_ADDR, mainAddress);
-    }
 
-    /**
-     * add subaccount auth headers
-     * @param builder
-     */
-    private void addSubHeaders(Request.Builder builder) {
-        if (subAuthToken == null || subAuthToken.isEmpty() || subAddress == null || subAddress.isEmpty()) {
-            throw new PerpHttpException("Missing subaccount auth token or subaccount address");
+        Map<String, Object> map = objectMapper.convertValue(o, Map.class);
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (entry.getValue() != null) {
+                queryParams.put(entry.getKey(), entry.getValue().toString());
+            }
         }
-        builder.header(HEADER_AUTH, HEADER_PREFIX + subAuthToken);
-        builder.header(HEADER_ADDR, subAddress);
+        return queryParams;
     }
 
     /**
@@ -299,6 +162,19 @@ public abstract class AbstractHttpClient implements HttpClient {
             return urlBuilder.build().toString();
         }
         return url;
+    }
+
+    /**
+     * build url with auth
+     * @param builder
+     * @param auth
+     * @return
+     */
+    private void buildUrlWithAuth(Request.Builder builder, AuthSession auth) {
+        if (auth != null && auth.isValid()) {
+            builder.header(HEADER_AUTH, HEADER_PREFIX + auth.token());
+            builder.header(HEADER_ADDR, auth.address());
+        }
     }
 
 }
