@@ -24,7 +24,7 @@ import io.dipcoin.sui.perp.model.request.*;
 import io.dipcoin.sui.perp.model.response.*;
 import io.dipcoin.sui.perp.util.DecimalUtil;
 import io.dipcoin.sui.perp.util.OrderUtil;
-import io.dipcoin.sui.perp.wallet.WalletKeyReal;
+import io.dipcoin.sui.perp.wallet.WalletKey;
 import io.dipcoin.sui.protocol.SuiClient;
 import io.dipcoin.sui.protocol.http.HttpService;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +56,7 @@ public class PerpHttpClientTest {
         PerpNetwork perpNetwork = PerpNetwork.TESTNET;
         HttpService suiService = new HttpService(perpNetwork.getConfig().suiRpc());
         this.suiClient = SuiClient.build(suiService);
-        this.perpClient = new PerpHttpClient(perpNetwork, WalletKeyReal.mainKeyPair, WalletKeyReal.subKeyPair);
+        this.perpClient = new PerpHttpClient(perpNetwork, WalletKey.mainKeyPair, WalletKey.subKeyPair);
     }
 
     // ------------------------- trade API -------------------------
