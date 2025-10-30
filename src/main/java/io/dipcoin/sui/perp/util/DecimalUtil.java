@@ -26,10 +26,16 @@ public class DecimalUtil {
 
     // 18 power
     private static final int UINT = 18;
+    // 9 power
+    private static final int SUI_UINT = 9;
     // base unit 1e18
     private static final BigInteger BASE_UINT_INTEGER = BigInteger.TEN.pow(UINT);
     // base unit 1e18
     private static final BigDecimal BASE_UINT_DECIMAL = BigDecimal.TEN.pow(UINT);
+    // base unit 1e9
+    private static final BigInteger SUI_UINT_INTEGER = BigInteger.TEN.pow(SUI_UINT);
+    // base unit 1e9
+    private static final BigDecimal SUI_UINT_DECIMAL = BigDecimal.TEN.pow(SUI_UINT);
     // half of base unit 0.5e18
     private static final BigInteger HALF_BASE_UINT = BASE_UINT_INTEGER.divide(BigInteger.valueOf(2));
 
@@ -142,6 +148,24 @@ public class DecimalUtil {
      */
     public static BigInteger toBaseUnit(BigInteger value) {
         return value.multiply(BASE_UINT_INTEGER);
+    }
+
+    /**
+     * convert a BigDecimal-type ordinary numerical value to a BigInteger with 9-digit precision
+     * @param value value to be converted
+     * @return BigInteger with 9-digit precision
+     */
+    public static BigInteger toSui(BigDecimal value) {
+        return value.multiply(SUI_UINT_DECIMAL).toBigInteger();
+    }
+
+    /**
+     * convert a BigInteger-type ordinary numerical value to a BigInteger with 9-digit precision
+     * @param value value to be converted
+     * @return BigInteger with 9-digit precision
+     */
+    public static BigInteger toSui(BigInteger value) {
+        return value.multiply(SUI_UINT_INTEGER);
     }
 
     /**

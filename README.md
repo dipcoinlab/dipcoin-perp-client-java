@@ -6,37 +6,34 @@ Java Implementation of the Dipcoin Perpetual Trading Client Library
 
 - [Overview](#overview)
 - [Installation](#installation)
-  - [Maven](#maven)
-  - [Gradle](#gradle)
 - [Quick Start](#quick-start)
-- [Core Modules](#core-modules)
+- [Off-Chain API Modules](#off-chain-api-modules)
+  - [PerpTradeClient](#perptradeclient)
+  - [PerpUserClient](#perpuserclient)
+  - [PerpMarketClient](#perpmarketclient)
   - [PerpHttpClient](#perphttpclient)
+- [On-Chain Operation Modules](#on-chain-operation-modules)
   - [PerpOnSignClient](#perponsignclient)
   - [PerpOffSignClient](#perpoffsignclient)
-- [API Reference](#api-reference)
-  - [Authorization API](#authorization-api)
-  - [Trading API](#trading-api)
-  - [User Data API](#user-data-api)
-  - [Market Data API](#market-data-api)
-  - [On-Chain API](#on-chain-api)
 - [Data Models](#data-models)
 - [Utilities](#utilities)
 - [Examples](#examples)
-- [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
 - [License](#license)
 
 ## Overview
 
-The Dipcoin Perpetual Client Library provides a comprehensive Java SDK for interacting with the Dipcoin perpetual futures trading platform. It supports both HTTP API operations and on-chain transactions on the Sui blockchain.
+The Dipcoin Perpetual Client Library provides a modular Java SDK for interacting with the Dipcoin perpetual futures trading platform. The library is divided into specialized modules for different use cases, supporting both HTTP API operations and on-chain blockchain transactions.
 
 ### Key Features
 
-- **Dual Account Architecture**: Separate main and sub accounts for enhanced security
+- **Modular Design**: Separate clients for trading, user data, and market data
+- **Sub Account Architecture**: Enhanced security by isolating trading operations from fund custody
 - **Automatic Authorization**: Built-in authentication management
+- **18 Decimal Precision**: All perp-related parameters (e.g., order sizes, quantity, prices, leverage) use 18 decimal places precision
+- **6 Decimal Precision**: Deposit/withdrawal/Add margin operations for USDC are handled with 6 decimal places precision
 - **Type-Safe API**: Strongly typed requests and responses
-- **On-Chain Operations**: Direct blockchain interaction support
-- **Comprehensive Trading**: Full order lifecycle management
+- **Flexible On-Chain Operations**: Support for both direct signing and wallet integration
 
 ## Installation
 
@@ -58,18 +55,16 @@ implementation 'io.dipcoin:sui-perp-client-java:1.0.0'
 
 ## Quick Start
 
-Complete example showing client initialization, fund deposit, and order placement:
+Complete example demonstrating the modular client initialization and basic operations:
 
 ```java
 import io.dipcoin.sui.crypto.Ed25519KeyPair;
 import io.dipcoin.sui.crypto.SuiKeyPair;
-import io.dipcoin.sui.perp.client.PerpHttpClient;
-import io.dipcoin.sui.perp.client.PerpOnSignClient;
+import io.dipcoin.sui.perp.client.*;
 import io.dipcoin.sui.perp.enums.OrderSide;
 import io.dipcoin.sui.perp.enums.OrderType;
 import io.dipcoin.sui.perp.enums.PerpNetwork;
 import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
-import io.dipcoin.sui.perp.model.response.AccountResponse;
 import io.dipcoin.sui.perp.util.DecimalUtil;
 import io.dipcoin.sui.perp.util.OrderUtil;
 
@@ -77,167 +72,111 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public class QuickStartExample {
-  public static void main(String[] args) {
-    // 1. Initialize keypairs
-    SuiKeyPair mainKeyPair = Ed25519KeyPair.decodeHex("your_main_private_key");
-    SuiKeyPair subKeyPair = Ed25519KeyPair.decodeHex("your_sub_private_key");
-
-    // 2. Create HTTP client (for API operations)
-    PerpClient httpClient = new PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair);
-
-    // 3. Create on-chain client (for blockchain operations)
-    PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
-
-    // 4. Set sub account (one-time setup)
-    onChainClient.setSubAccount(mainKeyPair, subKeyPair.address(), 1000L, BigInteger.TEN.pow(8));
-
-    // 5. Deposit funds (USDC spot 6 decimals)
-    BigInteger depositAmount = new BigInteger("1000000000"); // 1000 USDC
-    onChainClient.deposit(mainKeyPair, depositAmount, 1000L, BigInteger.TEN.pow(8));
-
-    // 6. Check account balance
-    AccountResponse account = httpClient.account();
-    System.out.println("Available margin: " + account.getFreeCollateral());
-
-    // 7. Get market perpId
-    String perpId = httpClient.getMarketPerpId("ETH-PERP");
-
-    // 8. Place an order
-    PlaceOrderRequest orderRequest = new PlaceOrderRequest()
-            .setSymbol("ETH-PERP")
-            .setMarket(perpId)
-            // price 3800 (18 decimals)
-            .setPrice(DecimalUtil.toBaseUnit(new BigInteger("3800")))
-            // quantity 1 ETH (18 decimals)
-            .setQuantity(DecimalUtil.toBaseUnit(BigInteger.ONE))
-            // or quantity 0.01 ETH (18 decimals)
-//            .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("0.01")))
-            .setSide(OrderSide.BUY.getCode())
-            .setOrderType(OrderType.LIMIT.getCode())
-            // 5x leverage (18 decimals)
-            .setLeverage(DecimalUtil.toBaseUnit(new BigInteger("5")))
-            .setReduceOnly(false)
-            .setCreator(mainKeyPair.address());
-
-    // 9. Sign order with sub account
-    String salt = new String(OrderUtil.getSalt());
-    orderRequest.setSalt(salt);
-    String signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair);
-    orderRequest.setOrderSignature(signature);
-
-    // 10. Submit order
-    String orderId = httpClient.placeOrder(orderRequest);
-    System.out.println("Order placed: " + orderId);
-  }
+    public static void main(String[] args) {
+        // 1. Initialize keypairs
+        // There are three methods to construct a private key pair: `suiPrivKey`, mnemonic phrase, and hexadecimal private key.
+//        SuiKeyPair mainKeyPair = SuiKeyPair.decodeSuiPrivateKey("suiprivKeyxxxx");
+//        SuiKeyPair mainKeyPair = Ed25519KeyPair.deriveKeypair("mnemonics", null);
+        SuiKeyPair mainKeyPair = Ed25519KeyPair.decodeHex("main_private_key_hex");
+        SuiKeyPair subKeyPair = Ed25519KeyPair.decodeHex("sub_private_key_hex");
+        
+        // 2. Create unified HTTP client
+        PerpHttpClient httpClient = new PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair);
+        
+        // 3. Create on-chain client for blockchain operations
+        PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
+        
+        // 4. Set sub account (one-time setup)
+        onChainClient.setSubAccount(
+            mainKeyPair,
+            subKeyPair.address(),
+            1000L,
+            DecimalUtil.toSui(new BigDecimal("0.1"))
+        );
+        
+        // 5. Deposit funds - USDC use 6 decimal precision
+        BigInteger depositAmount = new BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)); // 1000 USDC
+        onChainClient.deposit(mainKeyPair, depositAmount, 1000L, DecimalUtil.toSui(new BigDecimal("0.1")));
+        
+        // 6. Get market info
+        String perpId = httpClient.getMarketPerpId("BTC-PERP");
+        
+        // 7. Place order
+        PlaceOrderRequest orderRequest = new PlaceOrderRequest()
+                .setSymbol("BTC-PERP")
+                .setMarket(perpId)
+                .setPrice(DecimalUtil.toBaseUnit(new BigDecimal("50000")))
+                .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("1")))
+                .setSide(OrderSide.BUY.getCode())
+                .setOrderType(OrderType.LIMIT.getCode())
+                .setLeverage(DecimalUtil.toBaseUnit(new BigInteger("10")))
+                .setReduceOnly(false)
+                .setCreator(mainKeyPair.address())
+                .setClientId("order_001");
+        
+        // Sign with sub account
+        String salt = new String(OrderUtil.getSalt());
+        orderRequest.setSalt(salt);
+        String signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair);
+        orderRequest.setOrderSignature(signature);
+        
+        String orderId = httpClient.placeOrder(orderRequest);
+        System.out.println("Order placed: " + orderId);
+    }
 }
 ```
 
-## Core Modules
+## Off-Chain API Modules
 
-### PerpHttpClient
+### PerpTradeClient
 
-Main HTTP client for API operations. Automatically manages authorization for both main and sub accounts.
+**Purpose**: Handles all trading operations including order placement and cancellation.
 
-**Initialization:**
+**Security Model**: Uses sub account authentication to protect main account funds. The sub account can only execute trading operations (place/cancel orders) and cannot access or withdraw funds. This separation ensures that even if the sub account private key is compromised, the main account's assets remain secure.
 
-```java
-// Dual account mode (recommended for production)
-PerpClient client = new PerpHttpClient(PerpNetwork.MAINNET, mainKeyPair, subKeyPair);
-
-// Access account information
-String mainAddress = client.getMainAddress();
-String subAddress = client.getSubAddress();
-SuiKeyPair mainAccount = client.getMainAccount();
-SuiKeyPair subAccount = client.getSubAccount();
-```
-
-**Features:**
-- Automatic authorization on initialization
-- Dual account support (main for funds, sub for trading)
-- Thread-safe operations
-- Built-in error handling
-
-### PerpOnSignClient
-
-On-chain client for blockchain operations with signature management.
-
-**Initialization:**
+#### Initialization
 
 ```java
-// Basic initialization
-PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
+import io.dipcoin.sui.perp.client.PerpTradeClient;
+import io.dipcoin.sui.perp.client.auth.AuthSession;
+import io.dipcoin.sui.perp.client.core.PerpAuthorization;
+import io.dipcoin.sui.perp.enums.PerpNetwork;
 
-// With custom SuiClient
-SuiClient suiClient = SuiClient.build(new HttpService("https://fullnode.testnet.sui.io:443"));
-PerpOnSignClient onChainClient = new PerpOnSignClient(suiClient, PerpNetwork.TESTNET);
+// Create authorization and get auth session
+PerpAuthorization perpAuth = new PerpAuthorization(PerpNetwork.TESTNET);
+AuthSession subAuth = perpAuth.authorize(subKeyPair);
+
+// Initialize trade client with sub account auth
+PerpTradeClient tradeClient = new PerpTradeClient(PerpNetwork.TESTNET, subAuth);
 ```
-
-**Use Cases:**
-- Deposit and withdraw funds
-- Set sub account binding
-- Add margin to positions
-- Direct blockchain transactions
-
-### PerpOffSignClient
-
-Off-chain signing client for preparing transactions without immediate submission.
-
-**Features:**
-- Transaction preparation
-- Offline signing support
-- Batch transaction building
-
-## API Reference
-
-### Authorization API
-
-#### Authorize
-
-Authenticate with the Dipcoin platform.
-
-```java
-// Automatic authorization (done during client initialization)
-PerpHttpClient client = new PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair);
-
-// Manual authorization
-AuthorizationRequest request = new AuthorizationRequest()
-        .setUserAddress(mainKeyPair.address())
-        .setIsTermAccepted(true)
-        .setSignature(signature);
-AuthorizationResponse response = client.authorize(request);
-```
-
-**Response:**
-- `token`: Authentication token for subsequent requests
-- Automatically set in request headers
-
-### Trading API
 
 #### Place Order
-
-Submit a new order to the order book.
 
 ```java
 import io.dipcoin.sui.perp.enums.OrderSide;
 import io.dipcoin.sui.perp.enums.OrderType;
 import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
+import io.dipcoin.sui.perp.util.DecimalUtil;
 import io.dipcoin.sui.perp.util.OrderUtil;
 
-// Get market perpId
-String perpId = client.getMarketPerpId("BTC-PERP");
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
-// Create order request
+// Get market perp ID first
+String perpId = marketClient.getMarketPerpId("BTC-PERP");
+
+// Create order request with 18 decimal precision
 PlaceOrderRequest request = new PlaceOrderRequest()
         .setSymbol("BTC-PERP")
         .setMarket(perpId)
-        .setPrice(DecimalUtil.toBaseUnit(new BigInteger("110000"))     // 110000 USDC (18 decimals)
-        .setQuantity(DecimalUtil.toBaseUnit(BigInteger.ONE))   // 1 BTC (18 decimals)
+        .setPrice(DecimalUtil.toBaseUnit(new BigDecimal("50000")))      // 50000 USDC
+        .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("2")))       // 2 BTC
         .setSide(OrderSide.BUY.getCode())
         .setOrderType(OrderType.LIMIT.getCode())
-        .setLeverage(DecimalUtil.toBaseUnit(BigInteger.TEN)) // 10x leverage (18 decimals)
+        .setLeverage(DecimalUtil.toBaseUnit(new BigInteger("10")))      // 10x leverage
         .setReduceOnly(false)
-        .setCreator(mainKeyPair.address())
-        .setClientId("");
+        .setCreator(mainAddress)
+        .setClientId("unique_client_id");
 
 // Sign order with sub account
 String salt = new String(OrderUtil.getSalt());
@@ -246,26 +185,32 @@ String signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(request),
 request.setOrderSignature(signature);
 
 // Place order
-String orderId = client.placeOrder(request);
+String orderId = tradeClient.placeOrder(request);
+System.out.println("Order ID: " + orderId);
 ```
 
-**Parameters:**
-- `symbol`: Trading pair (e.g., "BTC-PERP")
-- `market`: Market perpetual ID from `getMarketPerpId()`
-- `price`: Order price (6 decimals for USDC)
-- `quantity`: Order quantity (9 decimals)
-- `side`: Order side (BUY or SELL)
-- `orderType`: Order type (LIMIT or MARKET)
-- `leverage`: Leverage multiplier
-- `reduceOnly`: Whether order reduces position only
-- `creator`: Main account address
-- `clientId`: Client-defined order ID, default ""
+**Market Order Example:**
 
-**Returns:** Order ID string
+```java
+PlaceOrderRequest marketOrder = new PlaceOrderRequest()
+        .setSymbol("BTC-PERP")
+        .setMarket(perpId)
+        .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("1")))  // 1 BTC
+        .setSide(OrderSide.SELL.getCode())
+        .setOrderType(OrderType.MARKET.getCode())
+        .setLeverage(DecimalUtil.toBaseUnit(new BigInteger("5")))
+        .setReduceOnly(false)
+        .setCreator(mainAddress)
+        .setClientId("market_order_001");
+
+String salt = new String(OrderUtil.getSalt());
+marketOrder.setSalt(salt);
+marketOrder.setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(marketOrder), subKeyPair));
+
+String orderId = tradeClient.placeOrder(marketOrder);
+```
 
 #### Cancel Order
-
-Cancel an existing order.
 
 ```java
 import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
@@ -275,20 +220,37 @@ CancelOrderRequest request = new CancelOrderRequest()
         .setOrderId("order_id_to_cancel")
         .setSymbol("BTC-PERP");
 
-CancelOrderResponse response = client.cancelOrder(request);
+CancelOrderResponse response = tradeClient.cancelOrder(request);
 System.out.println("Cancelled order: " + response.getOrderId());
 ```
 
-### User Data API
+---
+
+### PerpUserClient
+
+**Purpose**: Manages user account data including positions, orders, balance history, and funding settlements. Requires main account authorization to access sensitive account information.
+
+#### Initialization
+
+```java
+import io.dipcoin.sui.perp.client.PerpUserClient;
+import io.dipcoin.sui.perp.client.auth.AuthSession;
+import io.dipcoin.sui.perp.client.core.PerpAuthorization;
+
+// Create authorization with main account
+PerpAuthorization perpAuth = new PerpAuthorization(PerpNetwork.TESTNET);
+AuthSession mainAuth = perpAuth.authorize(mainKeyPair);
+
+// Initialize user client
+PerpUserClient userClient = new PerpUserClient(PerpNetwork.TESTNET, mainAuth);
+```
 
 #### Get Account Information
-
-Retrieve comprehensive account data including balances and margins.
 
 ```java
 import io.dipcoin.sui.perp.model.response.AccountResponse;
 
-AccountResponse account = client.account();
+AccountResponse account = userClient.account();
 System.out.println("Wallet balance: " + account.getWalletBalance());
 System.out.println("Free collateral: " + account.getFreeCollateral());
 System.out.println("Total position margin: " + account.getTotalPositionMargin());
@@ -296,51 +258,24 @@ System.out.println("Total unrealized profit: " + account.getTotalUnrealizedProfi
 System.out.println("Account value: " + account.getAccountValue());
 ```
 
-**Response Fields:**
-- `address`: Account address
-- `canTrade`: Trading permission status
-- `walletBalance`: Available wallet balance
-- `totalPositionMargin`: Total margin in positions
-- `totalUnrealizedProfit`: Unrealized P&L
-- `freeCollateral`: Available margin for trading
-- `accountValue`: Total account value
-- `feeTier`: Current fee tier
-- `accountDataByMarket`: Per-market account data
-
 #### Get Positions
-
-Retrieve all current open positions.
 
 ```java
 import io.dipcoin.sui.perp.model.response.PositionResponse;
 import java.util.List;
 
-List<PositionResponse> positions = client.positions();
+List<PositionResponse> positions = userClient.positions();
 for (PositionResponse position : positions) {
     System.out.println("Symbol: " + position.getSymbol());
     System.out.println("Side: " + position.getSide());
     System.out.println("Quantity: " + position.getQuantity());
     System.out.println("Entry price: " + position.getAvgEntryPrice());
-    System.out.println("Unrealized profit: " + position.getUnrealizedProfit());
+    System.out.println("Unrealized P&L: " + position.getUnrealizedProfit());
     System.out.println("Liquidation price: " + position.getLiquidationPrice());
 }
 ```
 
-**Position Fields:**
-- `symbol`: Trading pair
-- `side`: Position side (BUY/SELL)
-- `quantity`: Position size
-- `avgEntryPrice`: Average entry price
-- `margin`: Position margin
-- `leverage`: Current leverage
-- `positionValue`: Total position value
-- `unrealizedProfit`: Unrealized P&L
-- `liquidationPrice`: Liquidation price
-- `fundingDue`: Pending funding payment
-
 #### Get Active Orders
-
-Retrieve current active orders with pagination.
 
 ```java
 import io.dipcoin.sui.perp.model.PageResponse;
@@ -352,37 +287,27 @@ OrdersRequest request = new OrdersRequest()
         .setPage(1)
         .setPageSize(20);
 
-PageResponse<OrdersResponse> orders = client.orders(request);
+PageResponse<OrdersResponse> orders = userClient.orders(request);
 System.out.println("Total orders: " + orders.getTotal());
-for (OrdersResponse order : orders.getData()) {
-    System.out.println("Order ID: " + order.getOrderId());
-    System.out.println("Status: " + order.getStatus());
-}
 ```
 
 #### Get Order History
 
-Retrieve historical orders with pagination.
-
 ```java
-import io.dipcoin.sui.perp.model.PageResponse;
 import io.dipcoin.sui.perp.model.request.HistoryOrdersRequest;
 import io.dipcoin.sui.perp.model.response.HistoryOrdersResponse;
 
 HistoryOrdersRequest request = new HistoryOrdersRequest()
-        .setSymbol("BTC-PERP")  // Optional filter
+        .setSymbol("BTC-PERP")
         .setPage(1)
         .setPageSize(20);
 
-PageResponse<HistoryOrdersResponse> history = client.historyOrders(request);
+PageResponse<HistoryOrdersResponse> history = userClient.historyOrders(request);
 ```
 
 #### Get Funding Settlements
 
-Retrieve funding rate settlement history.
-
 ```java
-import io.dipcoin.sui.perp.model.PageResponse;
 import io.dipcoin.sui.perp.model.request.PageRequest;
 import io.dipcoin.sui.perp.model.response.FundingSettlementsResponse;
 
@@ -390,128 +315,243 @@ PageRequest request = new PageRequest()
         .setPage(1)
         .setPageSize(20);
 
-PageResponse<FundingSettlementsResponse> settlements = client.fundingSettlements(request);
+PageResponse<FundingSettlementsResponse> settlements = userClient.fundingSettlements(request);
 ```
 
 #### Get Balance Changes
 
-Retrieve account balance change history.
-
 ```java
-import io.dipcoin.sui.perp.model.PageResponse;
-import io.dipcoin.sui.perp.model.request.PageRequest;
 import io.dipcoin.sui.perp.model.response.BalanceChangesResponse;
 
 PageRequest request = new PageRequest()
         .setPage(1)
         .setPageSize(20);
 
-PageResponse<BalanceChangesResponse> changes = client.balanceChanges(request);
+PageResponse<BalanceChangesResponse> changes = userClient.balanceChanges(request);
 ```
 
-### Market Data API
+---
+
+### PerpMarketClient
+
+**Purpose**: Provides public market data without requiring authentication. Access real-time ticker information, order books, oracle prices, and trading pair details.
+
+#### Initialization
+
+```java
+import io.dipcoin.sui.perp.client.PerpMarketClient;
+import io.dipcoin.sui.perp.enums.PerpNetwork;
+
+// No authentication required for market data
+PerpMarketClient marketClient = new PerpMarketClient(PerpNetwork.TESTNET);
+```
 
 #### Get Trading Pairs
-
-Retrieve all available trading pairs.
 
 ```java
 import io.dipcoin.sui.perp.model.response.TradingPairResponse;
 import java.util.List;
 
-List<TradingPairResponse> pairs = client.tradingPair();
+List<TradingPairResponse> pairs = marketClient.tradingPair();
 for (TradingPairResponse pair : pairs) {
     System.out.println("Symbol: " + pair.getSymbol());
+    System.out.println("Perp ID: " + pair.getPerpId());
     System.out.println("Max leverage: " + pair.getMaxLeverage());
     System.out.println("Maker fee: " + pair.getMakerFee());
     System.out.println("Taker fee: " + pair.getTakerFee());
+    System.out.println("Step size: " + pair.getStepSize());
+    System.out.println("Tick size: " + pair.getTickSize());
 }
 ```
 
 #### Get Market Perp ID
 
-Get the perpetual market ID for a trading pair.
-
 ```java
-String perpId = client.getMarketPerpId("BTC-PERP");
+// Required when placing orders
+String perpId = marketClient.getMarketPerpId("BTC-PERP");
 System.out.println("Market Perp ID: " + perpId);
 ```
 
-**Note:** This is required when placing orders.
+**Note**: The perp ID is cached internally for performance. The first call fetches all trading pairs, subsequent calls use the cache.
 
 #### Get Pyth Feed ID
 
-Get the Pyth oracle feed ID for a trading pair.
-
 ```java
-String feedId = client.getPythFeedId("BTC-PERP");
+// Used for oracle price updates in on-chain operations
+String feedId = marketClient.getPythFeedId("BTC-PERP");
 System.out.println("Pyth Feed ID: " + feedId);
 ```
 
 #### Get Ticker
-
-Get real-time ticker data for a trading pair.
 
 ```java
 import io.dipcoin.sui.perp.model.request.SymbolRequest;
 import io.dipcoin.sui.perp.model.response.TickerResponse;
 
 SymbolRequest request = new SymbolRequest().setSymbol("BTC-PERP");
-TickerResponse ticker = client.ticker(request);
+TickerResponse ticker = marketClient.ticker(request);
 System.out.println("Last price: " + ticker.getLastPrice());
+System.out.println("24h high: " + ticker.getHigh24h());
+System.out.println("24h low: " + ticker.getLow24h());
 System.out.println("24h volume: " + ticker.getVolume24h());
+System.out.println("Price change 24h: " + ticker.getPriceChange24h());
 ```
 
 #### Get Order Book
 
-Retrieve order book depth.
-
 ```java
-import io.dipcoin.sui.perp.model.request.SymbolRequest;
 import io.dipcoin.sui.perp.model.response.OrderBookResponse;
 
 SymbolRequest request = new SymbolRequest().setSymbol("BTC-PERP");
-OrderBookResponse orderBook = client.orderBook(request);
+OrderBookResponse orderBook = marketClient.orderBook(request);
 
-// Bids sorted descending
+System.out.println("Bids (sorted descending):");
 orderBook.getBids().forEach(bid -> 
-    System.out.println("Bid: " + bid.getPrice() + " @ " + bid.getQuantity())
+    System.out.println("Price: " + bid.getPrice() + ", Qty: " + bid.getQuantity())
 );
 
-// Asks sorted ascending
+System.out.println("Asks (sorted ascending):");
 orderBook.getAsks().forEach(ask -> 
-    System.out.println("Ask: " + ask.getPrice() + " @ " + ask.getQuantity())
+    System.out.println("Price: " + ask.getPrice() + ", Qty: " + ask.getQuantity())
 );
 ```
 
 #### Get Oracle Price
 
-Get current oracle price from Pyth.
-
 ```java
-import io.dipcoin.sui.perp.model.request.SymbolRequest;
 import java.math.BigInteger;
 
 SymbolRequest request = new SymbolRequest().setSymbol("BTC-PERP");
-BigInteger oraclePrice = client.oracle(request);
+BigInteger oraclePrice = marketClient.oracle(request);
 System.out.println("Oracle price: " + oraclePrice);
 ```
 
-### On-Chain API
+---
+
+### PerpHttpClient
+
+**Purpose**: Unified HTTP client that aggregates all off-chain API modules (PerpTradeClient, PerpUserClient, PerpMarketClient). Provides a single entry point for all HTTP API operations with automatic authorization management.
+
+#### Initialization
+
+```java
+import io.dipcoin.sui.perp.client.PerpHttpClient;
+import io.dipcoin.sui.crypto.SuiKeyPair;
+import io.dipcoin.sui.perp.enums.PerpNetwork;
+
+SuiKeyPair mainKeyPair = Ed25519KeyPair.decodeHex("main_private_key");
+SuiKeyPair subKeyPair = Ed25519KeyPair.decodeHex("sub_private_key");
+
+// Automatically authorizes both accounts on initialization
+PerpHttpClient client = new PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair);
+
+// Access account information
+String mainAddress = client.getMainAddress();
+String subAddress = client.getSubAddress();
+SuiKeyPair mainAccount = client.getMainAccount();
+SuiKeyPair subAccount = client.getSubAccount();
+```
+
+#### Features
+
+- **Automatic Authorization**: Both main and sub accounts are authorized during initialization
+- **Unified Interface**: Access all API operations through a single client instance
+- **Internal Module Management**: Automatically delegates calls to appropriate specialized clients
+
+#### Usage Examples
+
+**Trading Operations** (uses PerpTradeClient internally):
+```java
+// Place order
+String orderId = client.placeOrder(orderRequest);
+
+// Cancel order
+CancelOrderResponse response = client.cancelOrder(cancelRequest);
+```
+
+**User Data Operations** (uses PerpUserClient internally):
+```java
+// Get account info
+AccountResponse account = client.account();
+
+// Get positions
+List<PositionResponse> positions = client.positions();
+
+// Get orders
+PageResponse<OrdersResponse> orders = client.orders(ordersRequest);
+
+// Get history
+PageResponse<HistoryOrdersResponse> history = client.historyOrders(historyRequest);
+
+// Get funding settlements
+PageResponse<FundingSettlementsResponse> settlements = client.fundingSettlements(pageRequest);
+
+// Get balance changes
+PageResponse<BalanceChangesResponse> changes = client.balanceChanges(pageRequest);
+```
+
+**Market Data Operations** (uses PerpMarketClient internally):
+```java
+// Get trading pairs
+List<TradingPairResponse> pairs = client.tradingPair();
+
+// Get market perp ID
+String perpId = client.getMarketPerpId("BTC-PERP");
+
+// Get Pyth feed ID
+String feedId = client.getPythFeedId("BTC-PERP");
+
+// Get ticker
+TickerResponse ticker = client.ticker(symbolRequest);
+
+// Get order book
+OrderBookResponse orderBook = client.orderBook(symbolRequest);
+
+// Get oracle price
+BigInteger oraclePrice = client.oracle(symbolRequest);
+```
+
+---
+
+## On-Chain Operation Modules
+
+### PerpOnSignClient
+
+**Purpose**: Handles on-chain blockchain operations with direct private key signing. Suitable for scenarios where you have direct access to private keys and want to execute blockchain transactions.
+
+#### Initialization
+
+```java
+import io.dipcoin.sui.perp.client.PerpOnSignClient;
+import io.dipcoin.sui.perp.enums.PerpNetwork;
+import io.dipcoin.sui.protocol.SuiClient;
+import io.dipcoin.sui.protocol.http.HttpService;
+
+// Basic initialization
+PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
+
+// With custom SuiClient
+SuiClient suiClient = SuiClient.build(new HttpService("https://fullnode.testnet.sui.io:443"));
+PerpOnSignClient onChainClient = new PerpOnSignClient(suiClient, PerpNetwork.TESTNET);
+
+// With custom market client
+PerpMarketClient marketClient = new PerpMarketClient(PerpNetwork.TESTNET);
+PerpOnSignClient onChainClient = new PerpOnSignClient(suiClient, PerpNetwork.TESTNET, marketClient);
+```
 
 #### Set Sub Account
 
-Bind sub account to main account on-chain (one-time setup).
+Bind sub account to main account on-chain (one-time setup required before trading with sub account).
 
 ```java
 import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
-import java.math.BigInteger;
+import io.dipcoin.sui.perp.util.DecimalUtil;
 
-PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
+import java.math.BigDecimal;
 
 String subAddress = subKeyPair.address();
 long gasPrice = 1000L;
-BigInteger gasBudget = BigInteger.TEN.pow(8); // 0.1 SUI
+BigDecimal gasBudget = DecimalUtil.toSui(new BigDecimal("0.1")); // 0.1 SUI
 
 SuiTransactionBlockResponse response = onChainClient.setSubAccount(
     mainKeyPair,
@@ -521,33 +561,29 @@ SuiTransactionBlockResponse response = onChainClient.setSubAccount(
 );
 
 System.out.println("Transaction digest: " + response.getDigest());
+System.out.println("Status: " + response.getEffects().getStatus().getStatus());
 ```
-
-**Requirements:**
-- Must be called before using sub account for trading
-- Consumes gas fees from main account
-- One sub account per main account
 
 #### Deposit
 
-Deposit USDC into trading account.
+Deposit USDC into trading account. All numerical values use 18 decimal precision.
 
 ```java
-import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
-import java.math.BigInteger;
+import java.math.BigDecimal;
 
-PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
-
-BigInteger amount = new BigInteger("1000000000"); // 1000 USDC (6 decimals)
+// Deposit 1000 USDC
+BigDecimal depositAmount = new BigDecimal("1000").multiply(BigInteger.TEN.pow(6));
 long gasPrice = 1000L;
-BigInteger gasBudget = BigInteger.TEN.pow(8);
+BigDecimal gasBudget = DecimalUtil.toSui(new BigDecimal("0.1"));
 
 SuiTransactionBlockResponse response = onChainClient.deposit(
     mainKeyPair,
-    amount,
+    depositAmount,
     gasPrice,
     gasBudget
 );
+
+System.out.println("Deposit transaction: " + response.getDigest());
 ```
 
 #### Withdraw
@@ -555,21 +591,19 @@ SuiTransactionBlockResponse response = onChainClient.deposit(
 Withdraw USDC from trading account.
 
 ```java
-import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
-import java.math.BigInteger;
-
-PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
-
-BigInteger amount = new BigInteger("500000000"); // 500 USDC (6 decimals)
+// Withdraw 500 USDC
+BigDecimal withdrawAmount = new BigDecimal("500").multiply(BigInteger.TEN.pow(6));
 long gasPrice = 1000L;
-BigInteger gasBudget = BigInteger.TEN.pow(8);
+BigDecimal gasBudget = DecimalUtil.toSui(new BigDecimal("0.1"));
 
 SuiTransactionBlockResponse response = onChainClient.withdraw(
     mainKeyPair,
-    amount,
+    withdrawAmount,
     gasPrice,
-    gasBudget
+    DecimalUtil.toSui(gasBudget)
 );
+
+System.out.println("Withdraw transaction: " + response.getDigest());
 ```
 
 #### Add Margin
@@ -577,26 +611,160 @@ SuiTransactionBlockResponse response = onChainClient.withdraw(
 Add margin to an existing position.
 
 ```java
-import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
-import java.math.BigInteger;
-
-PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
-
 String symbol = "BTC-PERP";
 String subAddress = subKeyPair.address();
-BigInteger amount = new BigInteger("100000000"); // 100 USDC (6 decimals)
+BigDecimal marginAmount = new BigDecimal("100").multiply(BigInteger.TEN.pow(6)); // 100 USDC
 long gasPrice = 1000L;
-BigInteger gasBudget = BigInteger.TEN.pow(8);
+BigDecimal gasBudget = DecimalUtil.toSui(new BigDecimal("0.1"));
 
 SuiTransactionBlockResponse response = onChainClient.addMargin(
     mainKeyPair,
     subAddress,
     symbol,
-    amount,
+    marginAmount,
     gasPrice,
     gasBudget
 );
+
+System.out.println("Add margin transaction: " + response.getDigest());
 ```
+
+---
+
+### PerpOffSignClient
+
+**Purpose**: Handles on-chain operations with external wallet integration. Designed for scenarios where private keys are managed by external wallet systems (hardware wallets, wallet SDKs, custody solutions). Requires implementing the `WalletService` interface.
+
+#### WalletService Interface
+
+You must implement this interface to integrate with your wallet system:
+
+```java
+import io.dipcoin.sui.perp.client.chain.WalletService;
+
+public class MyWalletService implements WalletService {
+    
+    @Override
+    public String sign(String address, byte[] txData) {
+        // Implement your wallet signing logic here
+        // txData is the BCS-encoded transaction bytes
+        // Return the signature string
+        
+        // Example with hardware wallet:
+        // HardwareWallet wallet = getWalletForAddress(address);
+        // byte[] signature = wallet.signTransaction(txData);
+        // return Base64.toBase64String(signature);
+        
+        // Example with key management service:
+        // KeyManagementService kms = getKMSClient();
+        // return kms.signTransaction(address, txData);
+        
+        return yourSigningImplementation(address, txData);
+    }
+}
+```
+
+#### Initialization
+
+```java
+import io.dipcoin.sui.perp.client.PerpOffSignClient;
+import io.dipcoin.sui.perp.client.PerpMarketClient;
+import io.dipcoin.sui.perp.client.chain.WalletService;
+import io.dipcoin.sui.perp.enums.PerpNetwork;
+
+// Implement wallet service
+WalletService walletService = new MyWalletService();
+
+// Initialize market client
+PerpMarketClient marketClient = new PerpMarketClient(PerpNetwork.TESTNET);
+
+// Create off-sign client
+PerpOffSignClient offSignClient = new PerpOffSignClient(
+    PerpNetwork.TESTNET,
+    marketClient,
+    walletService
+);
+
+// With custom SuiClient
+SuiClient suiClient = SuiClient.build(new HttpService("https://fullnode.testnet.sui.io:443"));
+PerpOffSignClient offSignClient = new PerpOffSignClient(
+    suiClient,
+    PerpNetwork.TESTNET,
+    marketClient,
+    walletService
+);
+```
+
+#### Set Sub Account
+
+```java
+String sender = "0x..."; // Main account address
+String subAddress = "0x..."; // Sub account address
+long gasPrice = 1000L;
+BigDecimal gasBudget = new BigDecimal("0.1");
+
+SuiTransactionBlockResponse response = offSignClient.setSubAccount(
+    sender,
+    subAddress,
+    gasPrice,
+    DecimalUtil.toBaseUnit(gasBudget)
+);
+```
+
+#### Deposit
+
+```java
+String sender = "0x..."; // Main account address
+BigDecimal depositAmount = new BigDecimal("1000");
+
+SuiTransactionBlockResponse response = offSignClient.deposit(
+    sender,
+    DecimalUtil.toBaseUnit(depositAmount),
+    gasPrice,
+    DecimalUtil.toBaseUnit(gasBudget)
+);
+```
+
+#### Withdraw
+
+```java
+String sender = "0x..."; // Main account address
+BigDecimal withdrawAmount = new BigDecimal("500");
+
+SuiTransactionBlockResponse response = offSignClient.withdraw(
+    sender,
+    DecimalUtil.toBaseUnit(withdrawAmount),
+    gasPrice,
+    DecimalUtil.toBaseUnit(gasBudget)
+);
+```
+
+#### Add Margin
+
+```java
+String sender = "0x..."; // Main account address
+String subAddress = "0x..."; // Sub account address
+String symbol = "BTC-PERP";
+BigDecimal marginAmount = new BigDecimal("100");
+
+SuiTransactionBlockResponse response = offSignClient.addMargin(
+    sender,
+    subAddress,
+    symbol,
+    DecimalUtil.toBaseUnit(marginAmount),
+    gasPrice,
+    DecimalUtil.toBaseUnit(gasBudget)
+);
+```
+
+**Use Cases for PerpOffSignClient**:
+- Hardware wallet integration
+- Multi-signature wallet systems
+- Custodial wallet services
+- Key management services (KMS)
+- Enterprise-grade security solutions
+
+---
 
 ## Data Models
 
@@ -606,13 +774,13 @@ SuiTransactionBlockResponse response = onChainClient.addMargin(
 public class PlaceOrderRequest {
     private String symbol;           // Trading pair (e.g., "BTC-PERP")
     private String market;           // Market perp ID from getMarketPerpId()
-    private BigInteger price;        // Order price (6 decimals)
-    private BigInteger quantity;     // Order quantity (9 decimals)
+    private BigInteger price;        // Order price (18 decimals)
+    private BigInteger quantity;     // Order quantity (18 decimals)
     private String side;             // OrderSide: BUY, SELL
     private String orderType;        // OrderType: LIMIT, MARKET
     private BigInteger leverage;     // Leverage multiplier
     private Boolean reduceOnly;      // Reduce-only flag
-    private String salt;             // Random salt from OrderUtil.getSalt()
+    private String salt;             // Random salt
     private String creator;          // Main account address
     private String clientId;         // Client-defined order ID
     private String orderSignature;   // Order signature
@@ -625,11 +793,11 @@ public class PlaceOrderRequest {
 public class AccountResponse {
     private String address;                    // Account address
     private Boolean canTrade;                  // Trading permission
-    private String walletBalance;              // Available balance
-    private String totalPositionMargin;        // Total position margin
-    private String totalUnrealizedProfit;      // Total unrealized P&L
-    private String freeCollateral;             // Available margin
-    private String accountValue;               // Total account value
+    private String walletBalance;              // Available balance (18 decimals)
+    private String totalPositionMargin;        // Total position margin (18 decimals)
+    private String totalUnrealizedProfit;      // Total unrealized P&L (18 decimals)
+    private String freeCollateral;             // Available margin (18 decimals)
+    private String accountValue;               // Total account value (18 decimals)
     private String feeTier;                    // Fee tier
     private List<AccountDataByMarketResponse> accountDataByMarket;
 }
@@ -641,16 +809,16 @@ public class AccountResponse {
 public class PositionResponse {
     private String symbol;              // Trading pair
     private String side;                // Position side (BUY/SELL)
-    private String quantity;            // Position size
-    private String avgEntryPrice;       // Average entry price
-    private String margin;              // Position margin
+    private String quantity;            // Position size (18 decimals)
+    private String avgEntryPrice;       // Average entry price (18 decimals)
+    private String margin;              // Position margin (18 decimals)
     private String leverage;            // Current leverage
-    private String positionValue;       // Position value
-    private String unrealizedProfit;    // Unrealized P&L
+    private String positionValue;       // Position value (18 decimals)
+    private String unrealizedProfit;    // Unrealized P&L (18 decimals)
     private String roe;                 // Return on equity (%)
-    private String liquidationPrice;    // Liquidation price
-    private String oraclePrice;         // Oracle price
-    private String fundingDue;          // Pending funding
+    private String liquidationPrice;    // Liquidation price (18 decimals)
+    private String oraclePrice;         // Oracle price (18 decimals)
+    private String fundingDue;          // Pending funding (18 decimals)
 }
 ```
 
@@ -662,14 +830,14 @@ public class TradingPairResponse {
     private String symbol;              // Trading pair symbol
     private String coinName;            // Base coin name
     private Integer status;             // Market status
-    private String initialMargin;       // Initial margin requirement
-    private String maintenanceMargin;   // Maintenance margin requirement
-    private String makerFee;            // Maker fee rate
-    private String takerFee;            // Taker fee rate
-    private String stepSize;            // Quantity step size
-    private String tickSize;            // Price tick size
-    private String maxQtyLimit;         // Max quantity for limit orders
-    private String maxQtyMarket;        // Max quantity for market orders
+    private String initialMargin;       // Initial margin requirement (18 decimals)
+    private String maintenanceMargin;   // Maintenance margin requirement (18 decimals)
+    private String makerFee;            // Maker fee rate (18 decimals)
+    private String takerFee;            // Taker fee rate (18 decimals)
+    private String stepSize;            // Quantity step size (18 decimals)
+    private String tickSize;            // Price tick size (18 decimals)
+    private String maxQtyLimit;         // Max quantity for limit orders (18 decimals)
+    private String maxQtyMarket;        // Max quantity for market orders (18 decimals)
     private Integer maxLeverage;        // Maximum leverage
     private String priceIdentifierId;   // Pyth price feed ID
 }
@@ -688,10 +856,10 @@ public enum OrderSide {
 #### OrderType
 ```java
 public enum OrderType {
-    LIMIT("LIMIT", 1),
-    MARKET("MARKET", 2),
-    LIQ("Liquidation", 3),
-    ADL("ADL", 4);
+    LIMIT("LIMIT", 1),      // Limit order
+    MARKET("MARKET", 2),    // Market order
+    LIQ("Liquidation", 3),  // Liquidation order
+    ADL("ADL", 4);          // Auto-deleveraging order
 }
 ```
 
@@ -703,15 +871,77 @@ public enum PerpNetwork {
 }
 ```
 
+---
+
 ## Utilities
+
+### DecimalUtil
+
+All numerical values in the Dipcoin Perpetual system use **18 decimal places precision**. The `DecimalUtil` class provides conversion methods between human-readable values and base unit values.
+
+#### Convert to Base Unit (18 decimals)
+
+```java
+import io.dipcoin.sui.perp.util.DecimalUtil;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+// From String
+BigInteger amount1 = DecimalUtil.toBaseUnit("1000.5");
+
+// From BigDecimal
+BigDecimal value = new BigDecimal("1000.5");
+BigInteger amount2 = DecimalUtil.toBaseUnit(value);
+
+// From BigInteger (multiplies by 10^18)
+BigInteger value3 = new BigInteger("1000");
+BigInteger amount3 = DecimalUtil.toBaseUnit(value3);
+
+// Get base unit constants
+BigInteger baseUnit = DecimalUtil.getBaseUintInteger();  // 10^18
+BigDecimal baseUnitDecimal = DecimalUtil.getBaseUintDecimal();  // 10^18
+BigInteger halfBaseUnit = DecimalUtil.getHalfBaseUint();  // 0.5 * 10^18
+```
+
+#### Convert from Base Unit
+
+```java
+// Convert 18 decimal base unit to human-readable value
+BigInteger baseUnitValue = new BigInteger("1500000000000000000000"); // 1500 * 10^18
+BigDecimal readableValue = DecimalUtil.fromBaseUnit(baseUnitValue);  // 1500.000000000000000000
+```
+
+#### Arithmetic Operations
+
+```java
+// Base multiplication (value * baseValue / 10^18)
+BigInteger result1 = DecimalUtil.baseMul(value1, value2);
+
+// Base division (value * 10^18 / baseValue)
+BigInteger result2 = DecimalUtil.baseDiv(value1, value2);
+
+// Ceiling (ceil(a/m) * m)
+BigInteger result3 = DecimalUtil.ceil(a, m);
+
+// Floor (floor(a/m) * m)
+BigInteger result4 = DecimalUtil.floor(a, m);
+
+// Minimum
+BigInteger result5 = DecimalUtil.min(a, b);
+
+// Safe subtraction (returns a - b if a > b, else 0)
+BigInteger result6 = DecimalUtil.sub(a, b);
+```
 
 ### OrderUtil
 
-Utility class for order operations.
+Utility class for order operations and cryptographic signing.
 
 #### Generate Salt
 
 ```java
+import io.dipcoin.sui.perp.util.OrderUtil;
+
 byte[] salt = OrderUtil.getSalt();
 String saltString = new String(salt);
 ```
@@ -722,11 +952,11 @@ String saltString = new String(salt);
 PlaceOrderRequest request = new PlaceOrderRequest()
         .setSymbol("BTC-PERP")
         .setMarket(perpId)
-        .setPrice(price)
-        .setQuantity(quantity)
+        .setPrice(DecimalUtil.toBaseUnit(new BigDecimal("50000")))
+        .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("1")))
         .setSide(OrderSide.BUY.getCode())
         .setOrderType(OrderType.LIMIT.getCode())
-        .setLeverage(leverage)
+        .setLeverage(new BigInteger("10"))
         .setReduceOnly(false)
         .setCreator(mainAddress)
         .setSalt(saltString);
@@ -748,12 +978,26 @@ String message = "Your message";
 String signature = OrderUtil.getSignature(message, keyPair);
 ```
 
+---
+
 ## Examples
 
 ### Complete Trading Flow
 
 ```java
-public class TradingExample {
+import io.dipcoin.sui.crypto.Ed25519KeyPair;
+import io.dipcoin.sui.crypto.SuiKeyPair;
+import io.dipcoin.sui.perp.client.*;
+import io.dipcoin.sui.perp.enums.*;
+import io.dipcoin.sui.perp.model.request.*;
+import io.dipcoin.sui.perp.model.response.*;
+import io.dipcoin.sui.perp.util.*;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.List;
+
+public class TradingFlowExample {
     public static void main(String[] args) {
         // Initialize
         SuiKeyPair mainKeyPair = Ed25519KeyPair.decodeHex("main_key");
@@ -763,14 +1007,25 @@ public class TradingExample {
         PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
         
         // Setup (one-time)
-        onChainClient.setSubAccount(mainKeyPair, subKeyPair.address(), 1000L, BigInteger.TEN.pow(8));
+        onChainClient.setSubAccount(
+            mainKeyPair,
+            subKeyPair.address(),
+            1000L,
+            DecimalUtil.toBaseUnit(new BigDecimal("0.1"))
+        );
         
-        // Deposit funds (USDC spot 6 decimals)
-        onChainClient.deposit(mainKeyPair, new BigInteger("10000000000"), 1000L, BigInteger.TEN.pow(8));
+        // Deposit funds
+        onChainClient.deposit(
+            mainKeyPair,
+            new BigDecimal("10000").multiply(BigInteger.TEN.pow(6)),
+            1000L,
+            DecimalUtil.toBaseUnit(new BigDecimal("0.1"))
+        );
         
         // Check balance
         AccountResponse account = httpClient.account();
-        System.out.println("Free collateral: " + account.getFreeCollateral());
+        BigDecimal freeCollateral = DecimalUtil.fromBaseUnit(new BigInteger(account.getFreeCollateral()));
+        System.out.println("Free collateral: " + freeCollateral);
         
         // Get market info
         String perpId = httpClient.getMarketPerpId("BTC-PERP");
@@ -779,16 +1034,14 @@ public class TradingExample {
         PlaceOrderRequest buyOrder = new PlaceOrderRequest()
                 .setSymbol("BTC-PERP")
                 .setMarket(perpId)
-                // price $110000 (18 decimals)
-                .setPrice(DecimalUtil.toBaseUnit(new BigInteger("110000")))
-                // quantity 2 BTC (18 decimals)
-                .setQuantity(DecimalUtil.toBaseUnit(new BigInteger("2")))
+                .setPrice(DecimalUtil.toBaseUnit(new BigDecimal("45000")))
+                .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("2")))
                 .setSide(OrderSide.BUY.getCode())
                 .setOrderType(OrderType.LIMIT.getCode())
-                // leverage 5x (18 decimals)
                 .setLeverage(DecimalUtil.toBaseUnit(new BigInteger("5")))
                 .setReduceOnly(false)
-                .setCreator(mainKeyPair.address());
+                .setCreator(mainKeyPair.address())
+                .setClientId("buy_001");
         
         String salt = new String(OrderUtil.getSalt());
         buyOrder.setSalt(salt);
@@ -801,34 +1054,38 @@ public class TradingExample {
         // Monitor positions
         List<PositionResponse> positions = httpClient.positions();
         positions.forEach(pos -> {
+            BigDecimal pnl = DecimalUtil.fromBaseUnit(new BigInteger(pos.getUnrealizedProfit()));
             System.out.println("Position: " + pos.getSymbol() + " " + pos.getSide());
-            System.out.println("P&L: " + pos.getUnrealizedProfit());
+            System.out.println("P&L: " + pnl);
         });
         
-        // Place sell order to close position
+        // Close position with market order
         PlaceOrderRequest sellOrder = new PlaceOrderRequest()
                 .setSymbol("BTC-PERP")
                 .setMarket(perpId)
-                // quantity 2 BTC (18 decimals)
-                .setQuantity(DecimalUtil.toBaseUnit(new BigInteger("2")))
+                .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("2")))
                 .setSide(OrderSide.SELL.getCode())
                 .setOrderType(OrderType.MARKET.getCode())
-                // leverage 5x (18 decimals)
                 .setLeverage(DecimalUtil.toBaseUnit(new BigInteger("5")))
                 .setReduceOnly(true)
-                .setCreator(mainKeyPair.address());
+                .setCreator(mainKeyPair.address())
+                .setClientId("sell_001");
         
         String sellSalt = new String(OrderUtil.getSalt());
         sellOrder.setSalt(sellSalt);
-        String sellSignature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(sellOrder), subKeyPair);
-        sellOrder.setOrderSignature(sellSignature);
+        sellOrder.setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(sellOrder), subKeyPair));
         
         String sellOrderId = httpClient.placeOrder(sellOrder);
         System.out.println("Sell order placed: " + sellOrderId);
         
-        // Withdraw profits (6 decimals)
-        BigInteger withdrawAmount = new BigInteger("1000000000");
-        onChainClient.withdraw(mainKeyPair, withdrawAmount, 1000L, BigInteger.TEN.pow(8));
+        // Withdraw profits
+        BigDecimal withdrawAmount = new BigDecimal("1000");
+        onChainClient.withdraw(
+            mainKeyPair,
+            DecimalUtil.toBaseUnit(withdrawAmount),
+            1000L,
+            DecimalUtil.toBaseUnit(new BigDecimal("0.1"))
+        );
     }
 }
 ```
@@ -838,35 +1095,50 @@ public class TradingExample {
 ```java
 public class MarketMakingExample {
     public static void main(String[] args) {
-        PerpClient client = new PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair);
+        PerpHttpClient client = new PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair);
         String perpId = client.getMarketPerpId("BTC-PERP");
         
         // Get current market price
         TickerResponse ticker = client.ticker(new SymbolRequest().setSymbol("BTC-PERP"));
-        BigInteger lastPrice = new BigInteger(ticker.getLastPrice());
+        BigDecimal lastPrice = DecimalUtil.fromBaseUnit(new BigInteger(ticker.getLastPrice()));
         
         // Calculate bid/ask prices (0.1% spread)
-        BigInteger bidPrice = lastPrice.multiply(new BigInteger("9995")).divide(new BigInteger("10000"));
-        BigInteger askPrice = lastPrice.multiply(new BigInteger("10005")).divide(new BigInteger("10000"));
+        BigDecimal bidPrice = lastPrice.multiply(new BigDecimal("0.9995"));
+        BigDecimal askPrice = lastPrice.multiply(new BigDecimal("1.0005"));
         
-        BigInteger quantity = DecimalUtil.toBaseUnit(new BigInteger("10")); // 10 unit
+        BigDecimal quantity = new BigDecimal("1");
         
         // Place bid order
-        PlaceOrderRequest bidOrder = createOrder(perpId, bidPrice, quantity, OrderSide.BUY, mainKeyPair.address());
+        PlaceOrderRequest bidOrder = createOrder(
+            perpId,
+            DecimalUtil.toBaseUnit(bidPrice),
+            DecimalUtil.toBaseUnit(quantity),
+            OrderSide.BUY,
+            mainKeyPair.address()
+        );
         String bidSalt = new String(OrderUtil.getSalt());
         bidOrder.setSalt(bidSalt);
         bidOrder.setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(bidOrder), subKeyPair));
         client.placeOrder(bidOrder);
         
         // Place ask order
-        PlaceOrderRequest askOrder = createOrder(perpId, askPrice, quantity, OrderSide.SELL, mainKeyPair.address());
+        PlaceOrderRequest askOrder = createOrder(
+            perpId,
+            DecimalUtil.toBaseUnit(askPrice),
+            DecimalUtil.toBaseUnit(quantity),
+            OrderSide.SELL,
+            mainKeyPair.address()
+        );
         String askSalt = new String(OrderUtil.getSalt());
         askOrder.setSalt(askSalt);
         askOrder.setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(askOrder), subKeyPair));
         client.placeOrder(askOrder);
     }
     
-    private static PlaceOrderRequest createOrder(String perpId, BigInteger price, BigInteger quantity, OrderSide side, String creator) {
+    private static PlaceOrderRequest createOrder(
+        String perpId, BigInteger price, BigInteger quantity,
+        OrderSide side, String creator
+    ) {
         return new PlaceOrderRequest()
                 .setSymbol("BTC-PERP")
                 .setMarket(perpId)
@@ -882,13 +1154,110 @@ public class MarketMakingExample {
 }
 ```
 
-## Error Handling
-
-The library uses custom exceptions for error handling:
-
-### Exception Types
+### Using Modular Clients
 
 ```java
+public class ModularClientExample {
+    public static void main(String[] args) {
+        // Initialize separate clients for different purposes
+        PerpNetwork network = PerpNetwork.TESTNET;
+        
+        // 1. Market data client (no auth required)
+        PerpMarketClient marketClient = new PerpMarketClient(network);
+        List<TradingPairResponse> pairs = marketClient.tradingPair();
+        
+        // 2. User data client (main account auth)
+        PerpAuthorization perpAuth = new PerpAuthorization(network);
+        AuthSession mainAuth = perpAuth.authorize(mainKeyPair);
+        PerpUserClient userClient = new PerpUserClient(network, mainAuth);
+        AccountResponse account = userClient.account();
+        
+        // 3. Trade client (sub account auth)
+        AuthSession subAuth = perpAuth.authorize(subKeyPair);
+        PerpTradeClient tradeClient = new PerpTradeClient(network, subAuth);
+        String orderId = tradeClient.placeOrder(orderRequest);
+        
+        // OR use unified client for convenience
+        PerpHttpClient unifiedClient = new PerpHttpClient(network, mainKeyPair, subKeyPair);
+        String orderId2 = unifiedClient.placeOrder(orderRequest);
+    }
+}
+```
+
+---
+
+## Best Practices
+
+### Security
+
+1. **Use Sub Account for Trading**: Keep main account private key offline, use sub account for order operations
+2. **Implement WalletService Properly**: For production systems, integrate with hardware wallets or secure key management services
+3. **Never Hardcode Private Keys**: Use environment variables or secure key storage
+4. **Validate Inputs**: Always validate order parameters before submission
+5. **Monitor Liquidation Prices**: Set up alerts for positions approaching liquidation
+
+### Precision Handling
+
+```java
+// ALWAYS use DecimalUtil for value conversions
+import io.dipcoin.sui.perp.util.DecimalUtil;
+import java.math.BigDecimal;
+
+// Convert human-readable values to base unit (18 decimals)
+BigDecimal userInput = new BigDecimal("1000.5");
+BigInteger baseUnitValue = DecimalUtil.toBaseUnit(userInput);
+
+// Convert base unit back to human-readable
+BigDecimal displayValue = DecimalUtil.fromBaseUnit(baseUnitValue);
+
+// For display purposes, format to appropriate decimal places
+String formatted = displayValue.setScale(2, RoundingMode.DOWN).toPlainString();
+```
+
+### Performance
+
+1. **Reuse Clients**: Create client instances once and reuse them
+2. **Cache Market Data**: Use `PerpMarketClient` caching for perp IDs and feed IDs
+3. **Batch Operations**: Use pagination for large data sets
+4. **Handle Rate Limits**: Implement exponential backoff
+5. **Connection Pooling**: Reuse HTTP connections when possible
+
+### Trading
+
+1. **Check Free Collateral**: Ensure sufficient margin before placing orders
+   ```java
+   AccountResponse account = client.account();
+   BigDecimal freeCollateral = DecimalUtil.fromBaseUnit(new BigInteger(account.getFreeCollateral()));
+   if (freeCollateral.compareTo(requiredMargin) >= 0) {
+       // Place order
+   }
+   ```
+
+2. **Use Reduce-Only for Closing**: Set `reduceOnly=true` when closing positions
+   ```java
+   request.setReduceOnly(true);
+   ```
+
+3. **Monitor Funding**: Track funding rates and settlements
+   ```java
+   PageResponse<FundingSettlementsResponse> settlements = client.fundingSettlements(pageRequest);
+   ```
+
+4. **Use Appropriate Leverage**: Conservative leverage reduces liquidation risk
+   ```java
+   request.setLeverage(new BigInteger("5")); // 5x leverage
+   ```
+
+5. **Implement Client IDs**: Use unique client IDs for order tracking
+   ```java
+   request.setClientId("strategy1_" + System.currentTimeMillis());
+   ```
+
+### Error Handling
+
+```java
+import io.dipcoin.sui.perp.exception.*;
+
 try {
     String orderId = client.placeOrder(request);
 } catch (PerpHttpException e) {
@@ -906,48 +1275,6 @@ try {
 }
 ```
 
-### Error Codes
-
-Common error codes from `ErrorCode` enum:
-- `SUCCESS (0)`: Operation successful
-- `INVALID_PARAMS`: Invalid request parameters
-- `UNAUTHORIZED`: Authentication failed
-- `NOT_FOUND`: Resource not found
-- `RATE_LIMIT`: Rate limit exceeded
-- `INSUFFICIENT_BALANCE`: Insufficient funds
-- `POSITION_NOT_FOUND`: Position not found
-
-## Best Practices
-
-### Security
-
-1. **Use Dual Account Mode**: Keep main account offline, use sub account for trading
-2. **Store Keys Securely**: Never hardcode private keys
-3. **Validate Inputs**: Always validate order parameters before submission
-4. **Monitor Positions**: Regularly check position status and liquidation prices
-
-### Performance
-
-1. **Reuse Clients**: Create client instances once and reuse them
-2. **Batch Operations**: Use pagination for large data sets
-3. **Handle Rate Limits**: Implement exponential backoff for rate limit errors
-4. **Cache Market Data**: Cache trading pair information to reduce API calls
-
-### Trading
-
-1. **Check Free Collateral**: Ensure sufficient margin before placing orders
-2. **Use Reduce-Only**: Set `reduceOnly=true` for closing orders
-3. **Monitor Funding**: Track funding rates and settlements
-4. **Set Appropriate Leverage**: Use conservative leverage for risk management
-5. **Use Client IDs**: Implement unique client IDs for order tracking
-
-### Development
-
-1. **Test on Testnet**: Always test thoroughly on testnet before mainnet
-2. **Log Transactions**: Keep logs of all transaction digests
-3. **Handle Errors Gracefully**: Implement proper error handling and retries
-4. **Version Compatibility**: Keep SDK updated to latest version
-
 ### Gas Management
 
 ```java
@@ -955,29 +1282,37 @@ Common error codes from `ErrorCode` enum:
 SuiClient suiClient = SuiClient.build(new HttpService(networkConfig.suiRpc()));
 Long gasPrice = suiClient.getReferenceGasPrice();
 
-// Use appropriate gas budget
-BigInteger gasBudget = BigInteger.TEN.pow(8); // 0.1 SUI (typical for most operations)
-BigInteger largeGasBudget = BigInteger.TEN.pow(9); // 1 SUI (for complex operations)
+// Use appropriate gas budget (in 18 decimals)
+BigDecimal normalGasBudget = new BigDecimal("0.1");  // 0.1 SUI
+BigDecimal largeGasBudget = new BigDecimal("1.0");   // 1 SUI for complex operations
+
+BigInteger gasBudget = DecimalUtil.toBaseUnit(normalGasBudget);
 ```
 
-### Precision Handling
+### Module Selection Guide
 
-```java
-// USDC has 6 decimals
-BigInteger usdcAmount = new BigInteger("1000000"); // 1 USDC
+**Use PerpHttpClient when:**
+- You need a simple, unified interface
+- You want automatic authorization management
+- You're building a simple trading application
 
-// Position quantities use 18 decimals
-BigInteger quantity = DecimalUtil.toBaseUnit(new BigInteger("1")); // 1 unit
+**Use Individual Modules when:**
+- You need fine-grained control over authentication
+- You want to minimize dependencies
+- You're building a microservices architecture
+- You need to separate concerns (e.g., read-only market data service)
 
-// Prices use 18 decimals (USDC)
-BigInteger price = DecimalUtil.toBaseUnit(new BigInteger("50000")); // 50000 USDC
+**Use PerpOnSignClient when:**
+- You have direct access to private keys
+- You're building automated trading systems
+- You need fast transaction signing
 
-// Leverage use 18 decimals
-BigInteger price = DecimalUtil.toBaseUnit(new BigInteger("5")); // leverage 5x
+**Use PerpOffSignClient when:**
+- You're integrating with external wallet systems
+- You need hardware wallet support
+- You're building enterprise-grade systems with strict security requirements
 
-// Always use BigInteger for financial calculations
-// Never use floating point for money
-```
+---
 
 ## License
 
@@ -985,6 +1320,6 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ---
 
-**Note**: This SDK is under active development. APIs may change in future versions. Always refer to the latest documentation and test thoroughly before production use.
+**Note**: This SDK uses 18 decimal places precision for all numerical values. Always use `DecimalUtil.toBaseUnit()` and `DecimalUtil.fromBaseUnit()` for conversions. The SDK is under active development, and APIs may change in future versions. Always test thoroughly on testnet before production use.
 
 For support and questions, please open an issue on the GitHub repository.
