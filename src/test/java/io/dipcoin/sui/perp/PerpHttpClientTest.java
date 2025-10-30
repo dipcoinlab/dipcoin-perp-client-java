@@ -22,6 +22,7 @@ import io.dipcoin.sui.perp.enums.PerpNetwork;
 import io.dipcoin.sui.perp.model.PageResponse;
 import io.dipcoin.sui.perp.model.request.*;
 import io.dipcoin.sui.perp.model.response.*;
+import io.dipcoin.sui.perp.util.DecimalUtil;
 import io.dipcoin.sui.perp.util.OrderUtil;
 import io.dipcoin.sui.perp.wallet.WalletKeyReal;
 import io.dipcoin.sui.protocol.SuiClient;
@@ -62,21 +63,30 @@ public class PerpHttpClientTest {
 
     @Test
     void testPlaceOrder() {
+        String symbol = "ETH-PERP";
+        // get market perp id by symbol
+        String perpId = perpClient.getMarketPerpId(symbol);
+
         // place order
         PlaceOrderRequest request = new PlaceOrderRequest();
-        request.setSymbol("ETH-PERP")
-                .setMarket("0x44e07a44992498d610f455310b839d9f29aca7657bce65aa8d614b240900a5c7")
-                .setPrice(new BigInteger("3940").multiply(BigInteger.TEN.pow(18)))
-                .setQuantity(new BigInteger("1").multiply(BigInteger.TEN.pow(17)))
+        request.setSymbol(symbol)
+                .setMarket(perpId)
+                // price $3940 (18 decimals)
+                .setPrice(DecimalUtil.toBaseUnit(new BigInteger("3940")))
+                // quantity 1 ETH (18 decimals)
+                .setQuantity(DecimalUtil.toBaseUnit(new BigInteger("1")))
                 .setSide(OrderSide.SELL.getCode())
                 .setOrderType(OrderType.LIMIT.getCode())
-                .setLeverage(BigInteger.ONE.multiply(BigInteger.TEN.pow(18)))
+                // leverage 1x (18 decimals)
+                .setLeverage(DecimalUtil.toBaseUnit(BigInteger.ONE))
                 .setSalt(String.valueOf(System.currentTimeMillis()))
                 .setCreator(perpClient.getMainAddress())
                 .setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), perpClient.getSubAccount()));
 
         String orderHash = perpClient.placeOrder(request);
         log.info("Response orderHash: {}", orderHash);
+        assertThat(orderHash)
+                .isInstanceOf(String.class);
     }
 
     @Test
@@ -93,6 +103,8 @@ public class PerpHttpClientTest {
 
         CancelOrderResponse response = perpClient.cancelOrder(request);
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(CancelOrderResponse.class);
     }
 
     // ------------------------- user API -------------------------
@@ -101,6 +113,8 @@ public class PerpHttpClientTest {
     void testPositions() {
         List<PositionResponse> response = perpClient.positions();
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(List.class);
     }
 
     @Test
@@ -111,12 +125,16 @@ public class PerpHttpClientTest {
                 .setPageSize(20);
         PageResponse<OrdersResponse> response = perpClient.orders(request);
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(PageResponse.class);
     }
 
     @Test
     void testAccount() {
         AccountResponse response = perpClient.account();
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(AccountResponse.class);
     }
 
     @Test
@@ -130,6 +148,8 @@ public class PerpHttpClientTest {
                 .setEndTime(now);
         PageResponse<HistoryOrdersResponse> response = perpClient.historyOrders(request);
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(AccountResponse.class);
     }
 
     @Test
@@ -140,6 +160,8 @@ public class PerpHttpClientTest {
                 .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
         PageResponse<FundingSettlementsResponse> response = perpClient.fundingSettlements(request);
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(AccountResponse.class);
     }
 
     @Test
@@ -150,6 +172,8 @@ public class PerpHttpClientTest {
                 .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
         PageResponse<BalanceChangesResponse> response = perpClient.balanceChanges(request);
         log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(AccountResponse.class);
     }
 
     // ------------------------- market API -------------------------

@@ -24,6 +24,7 @@ import io.dipcoin.sui.perp.enums.PerpNetwork;
 import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
 import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
 import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
+import io.dipcoin.sui.perp.util.DecimalUtil;
 import io.dipcoin.sui.perp.util.OrderUtil;
 import io.dipcoin.sui.perp.wallet.WalletKey;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
@@ -73,11 +75,14 @@ public class PerpTradeClientTest {
         PlaceOrderRequest request = new PlaceOrderRequest();
         request.setSymbol(symbol)
                 .setMarket(perpId)
-                .setPrice(new BigInteger("3940").multiply(BigInteger.TEN.pow(18)))
-                .setQuantity(new BigInteger("1").multiply(BigInteger.TEN.pow(17)))
+                // price $3940 (18 decimals)
+                .setPrice(DecimalUtil.toBaseUnit(new BigInteger("3940")))
+                // quantity 0.1 ETH (18 decimals)
+                .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("0.1")))
                 .setSide(OrderSide.SELL.getCode())
                 .setOrderType(OrderType.LIMIT.getCode())
-                .setLeverage(BigInteger.ONE.multiply(BigInteger.TEN.pow(18)))
+                // leverage 1x (18 decimals)
+                .setLeverage(DecimalUtil.toBaseUnit(BigInteger.ONE))
                 .setSalt(String.valueOf(System.currentTimeMillis()))
                 .setCreator(mainAddress)
                 .setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), subAccountKeyPair));
