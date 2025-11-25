@@ -24,7 +24,10 @@ import io.dipcoin.sui.perp.model.ApiResponse;
 import io.dipcoin.sui.perp.model.PerpConfig;
 import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
 import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
+import io.dipcoin.sui.perp.model.request.QueryTpslPlanRequest;
+import io.dipcoin.sui.perp.model.request.TpslPlanOrderRequest;
 import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
+import io.dipcoin.sui.perp.model.response.OrdersResponse;
 
 /**
  * @author : Same
@@ -43,7 +46,7 @@ public class PerpTradeClient extends AbstractHttpClient {
     }
 
     /**
-     * place order
+     * place normal order or tpsl order
      * @param request
      * @return
      */
@@ -67,6 +70,34 @@ public class PerpTradeClient extends AbstractHttpClient {
             return response.getData();
         } else {
             throw new PerpHttpException("Failed to cancelOrder, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * query take-profit/stop-loss plans associated with the position
+     * @param request
+     * @return
+     */
+    public OrdersResponse queryTpslPlan(QueryTpslPlanRequest request) {
+        ApiResponse<OrdersResponse> response = get(perpConfig.perpEndpoint() + PerpPath.QUERY_TPSL_PLAN, super.toQueryParams(request), subAuth, new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to tpslPlan, cause : " + response.getMessage());
+        }
+    }
+
+    /**
+     * plan close order [Take-Profit/Stop-Loss - Batch Add/Delete/Modify]
+     * @param request
+     * @return
+     */
+    public String planCloseOrder(TpslPlanOrderRequest request) {
+        ApiResponse<String> response = post(request, perpConfig.perpEndpoint() + PerpPath.TPSL_CLOSE_ORDER, subAuth, new TypeReference<>() {});
+        if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
+            return response.getData();
+        } else {
+            throw new PerpHttpException("Failed to planCloseOrder, cause : " + response.getMessage());
         }
     }
 

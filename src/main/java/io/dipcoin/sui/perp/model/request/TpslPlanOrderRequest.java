@@ -20,32 +20,17 @@ import java.math.BigInteger;
 
 /**
  * @author : Same
- * @datetime : 2025/10/23 09:51
- * @Description : PlaceOrder request
+ * @datetime : 2025/11/25 16:52
+ * @Description : TpslPlanOrder request
  */
 @Accessors(chain = true)
 @Data
-public class PlaceOrderRequest {
+public class TpslPlanOrderRequest {
 
     /**
      * trading pair
      */
     private String symbol;
-
-    /**
-     * perp id
-     */
-    private String market;
-
-    /**
-     * price
-     */
-    private BigInteger price;
-
-    /**
-     * quantity
-     */
-    private BigInteger quantity;
 
     /**
      * trade direction: BUY / SELL
@@ -54,100 +39,127 @@ public class PlaceOrderRequest {
     private String side;
 
     /**
-     * order types: LIMIT, MARKET
-     * @see io.dipcoin.sui.perp.enums.OrderType
-     */
-    private String orderType;
-
-    /**
      * leverage multiplier
      */
     private BigInteger leverage;
-
-    /**
-     * whether to reduce position only
-     */
-    private Boolean reduceOnly = false;
-
-    /**
-     * signature salt
-     */
-    private String salt;
 
     /**
      * order belongs to the master account
      */
     private String creator;
 
-    /**
-     * client ID
-     */
-    private String clientId = "";
-
-    /**
-     * order signature
-     */
-    private String orderSignature;
-
-    /**
-     * mark price triggered by oracle
-     */
-    private String triggerWay = "oracle";
-
-    // ==================== tp/sl parameters ====================
-
     // -------------------- take profit --------------------
 
+    /**
+     * take-profit order hash to be modified
+     */
+    private Long tpPlanId;
+        
     /**
      * order types: Planned Limit (LIMIT), Planned Market (MARKET)
      */
     private String tpOrderType;
-
+        
+    /**
+     * take-profit/stop-loss types: normal (regular) or position (position-based)
+     */
+    private String tpTpslType;
+        
     /**
      * trigger price
      */
     private BigInteger tpTriggerPrice;
-
+        
     /**
      * order price
      */
     private BigInteger tpOrderPrice;
+        
+    /**
+     * quantity: Required when tpslType = normal; when position is specified, pass the maximum allowed value for the trading pair's market/limit order
+     */
+    private BigInteger tpQuantity;
+        
+    /**
+     * mark price triggered by oracle
+     */
+    private String tpTriggerWay = "oracle";
 
     /**
      * signature salt
      */
     private String tpSalt;
-
+        
     /**
      * order signature
      */
     private String tpOrderSignature;
+        
+    /**
+     * cancel order signature
+     */
+    private String tpCancelSignature;
+        
+    /**
+     * whether to cancel the take-profit order
+     */
+    private Boolean tpRemove = false;
 
     // -------------------- stop loss --------------------
-
+        
+    /**
+     * stop-loss order ID to be modified
+     */
+    private Long slPlanId;
+        
     /**
      * order types: Planned Limit (LIMIT), Planned Market (MARKET)
      */
     private String slOrderType;
-
+        
+    /**
+     * take-profit/stop-loss types: normal (regular) or position (position-based)
+     */
+    private String slTpslType;
+        
     /**
      * trigger price
      */
     private BigInteger slTriggerPrice;
-
+        
     /**
      * order price
      */
     private BigInteger slOrderPrice;
+        
+    /**
+     * quantity: Required when tpslType = normal; when position is specified, pass the maximum allowed value for the trading pair's market/limit order
+     */
+    private BigInteger slQuantity;
+        
+    /**
+     * mark price triggered by oracle
+     */
+    private String slTriggerWay = "oracle";
 
     /**
      * signature salt
      */
     private String slSalt;
-
+        
     /**
      * order signature
      */
     private String slOrderSignature;
+        
+    /**
+     * cancel order signature
+     */
+    private String slCancelSignature;
+        
+    /**
+     * whether to cancel the stop-loss order
+     */
+    private Boolean slRemove = false;
 
 }

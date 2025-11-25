@@ -146,7 +146,7 @@ public class OrdersResponse {
     private Boolean reduceOnly;
 
     /**
-     * planned types: open (regular order), takeProfit (take profit order), stopLoss (stop loss order)
+     * planned order types: open (regular order), takeProfit (take profit order), stopLoss (stop loss order)
      */
     private String planOrderType;
 
@@ -154,5 +154,10 @@ public class OrdersResponse {
      * planned batch number
      */
     private Long planBatchId = 0L;
+
+    /**
+     * planned types: open (regular order), takeProfit (take profit order), stopLoss (stop loss order)
+     */
+    private String planType;
 
 }

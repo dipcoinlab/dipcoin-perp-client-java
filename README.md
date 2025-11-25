@@ -43,14 +43,14 @@ The Dipcoin Perpetual Client Library provides a modular Java SDK for interacting
 <dependency>
     <groupId>io.dipcoin</groupId>
     <artifactId>sui-perp-client-java</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```gradle
-implementation 'io.dipcoin:sui-perp-client-java:1.0.0'
+implementation 'io.dipcoin:sui-perp-client-java:1.0.1'
 ```
 
 ## Quick Start
@@ -748,6 +748,24 @@ String symbol = "BTC-PERP";
 BigDecimal marginAmount = new BigDecimal("100");
 
 SuiTransactionBlockResponse response = offSignClient.addMargin(
+    sender,
+    subAddress,
+    symbol,
+    DecimalUtil.toBaseUnit(marginAmount),
+    gasPrice,
+    DecimalUtil.toBaseUnit(gasBudget)
+);
+```
+
+#### Remove Margin
+
+```java
+String sender = "0x..."; // Main account address
+String subAddress = "0x..."; // Sub account address
+String symbol = "BTC-PERP";
+BigDecimal marginAmount = new BigDecimal("100");
+
+SuiTransactionBlockResponse response = offSignClient.removeMargin(
     sender,
     subAddress,
     symbol,

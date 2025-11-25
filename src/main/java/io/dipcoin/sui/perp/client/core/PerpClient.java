@@ -61,6 +61,20 @@ public interface PerpClient {
      */
     CancelOrderResponse cancelOrder(CancelOrderRequest request);
 
+    /**
+     * query take-profit/stop-loss plans associated with the position
+     * @param request
+     * @return
+     */
+    OrdersResponse queryTpslPlan(QueryTpslPlanRequest request);
+
+    /**
+     * plan close order [Take-Profit/Stop-Loss - Batch Add/Delete/Modify]
+     * @param request
+     * @return
+     */
+    String planCloseOrder(TpslPlanOrderRequest request);
+
     // ------------------------- user API -------------------------
 
     /**

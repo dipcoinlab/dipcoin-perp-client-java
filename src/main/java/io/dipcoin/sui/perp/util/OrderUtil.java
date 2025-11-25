@@ -69,6 +69,54 @@ public class OrderUtil {
     }
 
     /**
+     * serialize Maker or Taker take profit orders into hex strings
+     * @param request
+     * @return
+     */
+    public static String getTpSerializedOrder(PlaceOrderRequest request) {
+        boolean reduceOnly = true;
+        boolean isBuy = !request.getSide().equals(OrderSide.BUY.getCode());
+        return getSerializedOrder(request.getMarket(),
+                isBuy,
+                reduceOnly,
+                false,
+                true,
+                false,
+                request.getTpOrderPrice(),
+                request.getQuantity(),
+                request.getLeverage(),
+                new BigInteger(request.getTpSalt()),
+                BigInteger.ZERO,
+                request.getCreator(),
+                getOrderFlags(false, false, reduceOnly, isBuy, true)
+        );
+    }
+
+    /**
+     * serialize Maker or Taker stop loss orders into hex strings
+     * @param request
+     * @return
+     */
+    public static String getSlSerializedOrder(PlaceOrderRequest request) {
+        boolean reduceOnly = true;
+        boolean isBuy = !request.getSide().equals(OrderSide.BUY.getCode());
+        return getSerializedOrder(request.getMarket(),
+                isBuy,
+                reduceOnly,
+                false,
+                true,
+                false,
+                request.getSlOrderPrice(),
+                request.getQuantity(),
+                request.getLeverage(),
+                new BigInteger(request.getSlSalt()),
+                BigInteger.ZERO,
+                request.getCreator(),
+                getOrderFlags(false, false, reduceOnly, isBuy, true)
+        );
+    }
+
+    /**
      * serialize Maker or Taker orders into hex strings
      * @param symbol trading pair
      * @param isLong

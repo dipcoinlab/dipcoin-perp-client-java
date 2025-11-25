@@ -21,9 +21,13 @@ import io.dipcoin.sui.perp.client.core.PerpAuthorization;
 import io.dipcoin.sui.perp.enums.OrderSide;
 import io.dipcoin.sui.perp.enums.OrderType;
 import io.dipcoin.sui.perp.enums.PerpNetwork;
+import io.dipcoin.sui.perp.enums.TpslTypeEnum;
 import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
 import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
+import io.dipcoin.sui.perp.model.request.QueryTpslPlanRequest;
+import io.dipcoin.sui.perp.model.request.TpslPlanOrderRequest;
 import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
+import io.dipcoin.sui.perp.model.response.OrdersResponse;
 import io.dipcoin.sui.perp.util.DecimalUtil;
 import io.dipcoin.sui.perp.util.OrderUtil;
 import io.dipcoin.sui.perp.wallet.WalletKey;
@@ -111,6 +115,110 @@ public class PerpTradeClientTest {
         log.info("Response: {}", response);
         assertThat(response)
                 .isInstanceOf(CancelOrderResponse.class);
+    }
+
+    @Test
+    void testTpslPlaceOrder() {
+        // place tpsl order
+        SuiKeyPair subAccountKeyPair = WalletKey.subKeyPair;
+        String mainAddress = WalletKey.mainKeyPair.address();
+        String symbol = "ETH-PERP";
+
+        // get market perp id by symbol
+        String perpId = perpMarketClient.getMarketPerpId(symbol);
+        BigInteger openOrderPrice = DecimalUtil.toBaseUnit(new BigInteger("2920"));
+        long now = System.currentTimeMillis();
+        // take profit 20%
+        BigInteger tpPrice = openOrderPrice.multiply(new BigInteger("120")).divide(new BigInteger("100"));
+        // stop loss -20%
+        BigInteger slPrice = openOrderPrice.multiply(new BigInteger("80")).divide(new BigInteger("100"));
+
+        PlaceOrderRequest request = new PlaceOrderRequest();
+        request.setSymbol(symbol)
+                .setMarket(perpId)
+                // price $2895 (18 decimals)
+                .setPrice(openOrderPrice)
+                // quantity 0.1 ETH (18 decimals)
+                .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("0.1")))
+                .setSide(OrderSide.BUY.getCode())
+                .setOrderType(OrderType.LIMIT.getCode())
+                // leverage 1x (18 decimals)
+                .setLeverage(DecimalUtil.toBaseUnit(BigInteger.ONE))
+                .setSalt(String.valueOf(now))
+                .setCreator(mainAddress)
+                .setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), subAccountKeyPair))
+                // -------------------- take profit --------------------
+                .setTpOrderType(OrderType.LIMIT.getCode())
+                .setTpTriggerPrice(tpPrice)
+                .setTpOrderPrice(tpPrice)
+                .setTpSalt(String.valueOf(now + 1L))
+                .setTpOrderSignature(OrderUtil.getSignature(OrderUtil.getTpSerializedOrder(request), subAccountKeyPair))
+                // -------------------- stop loss --------------------
+                .setSlOrderType(OrderType.LIMIT.getCode())
+                .setSlTriggerPrice(slPrice)
+                .setSlOrderPrice(slPrice)
+                .setSlSalt(String.valueOf(now + 2L))
+                .setSlOrderSignature(OrderUtil.getSignature(OrderUtil.getSlSerializedOrder(request), subAccountKeyPair))
+        ;
+
+        String orderHash = perpTradeClient.placeOrder(request);
+        log.info("Response orderHash: {}", orderHash);
+        assertThat(orderHash)
+                .isInstanceOf(String.class);
+    }
+
+    @Test
+    @Tag("suite")
+    void testTpslCancelOrder() {
+        SuiKeyPair subAccountKeyPair = WalletKey.subKeyPair;
+        String mainAddress = WalletKey.mainKeyPair.address();
+        // cancel tpsl order
+        // a11249047813b79a47ef36689e2dcea6e075308f8fcb2af0c628f6ee4a2d7898
+        List<String> orders = List.of("a11249047813b79a47ef36689e2dcea6e075308f8fcb2af0c628f6ee4a2d7898");
+        CancelOrderRequest request = new CancelOrderRequest();
+        request.setSymbol("ETH-PERP")
+                .setOrderHashes(orders)
+                .setParentAddress(mainAddress)
+                .setSignature(OrderUtil.getSignature(OrderUtil.getSerializedCancelOrder(orders), subAccountKeyPair));
+
+        CancelOrderResponse response = perpTradeClient.cancelOrder(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(CancelOrderResponse.class);
+    }
+
+    @Test
+    @Tag("suite")
+    void testQueryTpslPlan() {
+        // query tpsl plan
+        QueryTpslPlanRequest request = new QueryTpslPlanRequest();
+        request.setPositionId(0L)
+                .setTpslType(TpslTypeEnum.NORMAL.getTpslType());
+
+        OrdersResponse response = perpTradeClient.queryTpslPlan(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(OrdersResponse.class);
+    }
+
+    @Test
+    @Tag("suite")
+    void testPlanCloseOrder() {
+        // TODO PlanCloseOrder
+        SuiKeyPair subAccountKeyPair = WalletKey.subKeyPair;
+        String mainAddress = WalletKey.mainKeyPair.address();
+        // cancel tpsl order
+        List<String> orders = List.of("3d40af25599bb4069da03a249ca968942b1e09a8499b7564601d170ee0562f0a");
+        TpslPlanOrderRequest request = new TpslPlanOrderRequest();
+//        request.setSymbol("ETH-PERP")
+//                .setOrderHashes(orders)
+//                .setParentAddress(mainAddress)
+//                .setSignature(OrderUtil.getSignature(OrderUtil.getSerializedCancelOrder(orders), subAccountKeyPair));
+
+        String response = perpTradeClient.planCloseOrder(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(String.class);
     }
 
 }

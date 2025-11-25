@@ -11,35 +11,29 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.dipcoin.sui.perp.enums;
+package io.dipcoin.sui.perp.model.request;
 
-import lombok.Getter;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
  * @author : Same
- * @datetime : 2025/10/22 17:08
- * @Description :
+ * @datetime : 2025/11/25 16:18
+ * @Description : QueryTpslPlan request
  */
-@Getter
-public enum PerpFunction {
+@Accessors(chain = true)
+@Data
+public class QueryTpslPlanRequest {
 
-    SET_SUB_ACCOUNT("sub_accounts", "set_sub_account"),
+    /**
+     * position ID
+     */
+    private Long positionId;
 
-    DEPOSIT("bank", "deposit"),
+    /**
+     * take-profit/stop-loss types: normal (regular) or position (position-based)
+     * @see io.dipcoin.sui.perp.enums.TpslTypeEnum
+     */
+    private String tpslType;
 
-    WITHDRAW("bank", "withdraw"),
-
-    ADD_MARGIN("exchange", "add_margin"),
-
-    REMOVE_MARGIN("exchange", "remove_margin"),
-
-    ;
-
-    PerpFunction(String module, String function) {
-        this.module = module;
-        this.function = function;
-    }
-
-    private final String module;
-    private final String function;
 }

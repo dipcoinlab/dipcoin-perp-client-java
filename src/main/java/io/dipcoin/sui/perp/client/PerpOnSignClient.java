@@ -263,4 +263,55 @@ public class PerpOnSignClient extends AbstractOnChainClient {
         }
     }
 
+    /**
+     * remove margin
+     * @param suiKeyPair
+     * @param subAddress
+     * @param gasPrice
+     * @param gasBudget
+     * @return
+     */
+    public SuiTransactionBlockResponse removeMargin(SuiKeyPair suiKeyPair, String subAddress, String symbol, BigInteger amount, long gasPrice, BigInteger gasBudget) {
+        PerpFunction perpFunction = PerpFunction.REMOVE_MARGIN;
+        String address = suiKeyPair.address();
+        String feedId = perpMarketClient.getPythFeedId(symbol);
+
+        ProgrammableTransaction programmableTx = pythClient.updatePrice(feedId, perpConfig.pythNetwork());
+        // ProgrammableMoveCall
+        ProgrammableMoveCall moveCall = new ProgrammableMoveCall(
+                perpConfig.packageId(),
+                perpFunction.getModule(),
+                perpFunction.getFunction(),
+                TypeTagSerializer.parseStructTypeArgs(perpConfig.coinType(), true),
+                Arrays.asList(
+                        Argument.ofInput(programmableTx.addInput(this.getProtocolConfig())),
+                        Argument.ofInput(programmableTx.addInput(this.getClock())),
+                        Argument.ofInput(programmableTx.addInput(this.getPerpetual(symbol))),
+                        Argument.ofInput(programmableTx.addInput(this.getBank())),
+                        Argument.ofInput(programmableTx.addInput(this.getSubAccounts())),
+                        Argument.ofInput(programmableTx.addInput(this.getTxIndexer())),
+                        Argument.ofInput(programmableTx.addInput(this.getPriceOracleObject(symbol))),
+                        Argument.ofInput(programmableTx.addInput(new CallArgPure(subAddress,
+                                PureBcs.BasePureType.ADDRESS))),
+                        Argument.ofInput(programmableTx.addInput(new CallArgPure(amount,
+                                PureBcs.BasePureType.U128))),
+                        Argument.ofInput(programmableTx.addInput(new CallArgPure(Ed25519KeyPair.generate().privateKey(),
+                                PureBcs.BasePureType.VECTOR_U8)))
+                )
+        );
+
+        // Command
+        Command depositMoveCallCommand = new Command.MoveCall(moveCall);
+        List<Command> commands = new ArrayList<>(List.of(
+                depositMoveCallCommand
+        ));
+        programmableTx.addCommands(commands);
+
+        try {
+            return TransactionBuilder.sendTransaction(suiClient, programmableTx, suiKeyPair, TransactionBuilder.buildGasData(suiClient, address, gasPrice, gasBudget));
+        } catch (IOException e) {
+            throw new PerpRpcFailedException("Failed to send transaction", e);
+        }
+    }
+
 }

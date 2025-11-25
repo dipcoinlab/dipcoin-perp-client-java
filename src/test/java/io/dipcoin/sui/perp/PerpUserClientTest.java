@@ -93,7 +93,7 @@ public class PerpUserClientTest {
         PageResponse<HistoryOrdersResponse> response = perpUserClient.historyOrders(request);
         log.info("Response: {}", response);
         assertThat(response)
-                .isInstanceOf(AccountResponse.class);
+                .isInstanceOf(PageResponse.class);
     }
 
     @Test
@@ -105,7 +105,7 @@ public class PerpUserClientTest {
         PageResponse<FundingSettlementsResponse> response = perpUserClient.fundingSettlements(request);
         log.info("Response: {}", response);
         assertThat(response)
-                .isInstanceOf(AccountResponse.class);
+                .isInstanceOf(PageResponse.class);
     }
 
     @Test
@@ -117,7 +117,7 @@ public class PerpUserClientTest {
         PageResponse<BalanceChangesResponse> response = perpUserClient.balanceChanges(request);
         log.info("Response: {}", response);
         assertThat(response)
-                .isInstanceOf(AccountResponse.class);
+                .isInstanceOf(PageResponse.class);
     }
 
 }

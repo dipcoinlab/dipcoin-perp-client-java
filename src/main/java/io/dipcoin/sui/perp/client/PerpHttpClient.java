@@ -87,6 +87,16 @@ public class PerpHttpClient extends AbstractHttpClient implements PerpClient {
         return perpTradeClient.cancelOrder(request);
     }
 
+    @Override
+    public OrdersResponse queryTpslPlan(QueryTpslPlanRequest request) {
+        return perpTradeClient.queryTpslPlan(request);
+    }
+
+    @Override
+    public String planCloseOrder(TpslPlanOrderRequest request) {
+        return perpTradeClient.planCloseOrder(request);
+    }
+
     // ------------------------- user API -------------------------
 
     @Override

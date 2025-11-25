@@ -26,6 +26,10 @@ public interface PerpPath {
 
     String CANCEL_ORDER = "/perp-trade-api/trade/cancelorder";
 
+    String QUERY_TPSL_PLAN = "/perp-trade-api/plan/position/tpsl";
+
+    String TPSL_CLOSE_ORDER = "/perp-trade-api/plan/batch/plancloseorder";
+
     String POSITIONS = "/perp-trade-api/curr-info/positions";
 
     String ORDERS = "/perp-trade-api/curr-info/orders";
