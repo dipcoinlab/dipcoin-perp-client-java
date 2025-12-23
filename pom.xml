@@ -6,7 +6,7 @@
 
     <groupId>io.dipcoin</groupId>
     <artifactId>sui-perp-client-java</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>sui-perp-client-java</name>
     <description>Java Implementation of the Dipcoin Perp Client Library.</description>
     <url>https://github.com/dipcoinlab/dipcoinlab/dipcoin-perp-client-java</url>
