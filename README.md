@@ -43,14 +43,14 @@ The Dipcoin Perpetual Client Library provides a modular Java SDK for interacting
 <dependency>
     <groupId>io.dipcoin</groupId>
     <artifactId>sui-perp-client-java</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```gradle
-implementation 'io.dipcoin:sui-perp-client-java:1.0.1'
+implementation 'io.dipcoin:sui-perp-client-java:1.0.2'
 ```
 
 ## Quick Start
