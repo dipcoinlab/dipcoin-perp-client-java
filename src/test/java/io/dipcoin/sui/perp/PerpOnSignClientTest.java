@@ -14,6 +14,7 @@
 package io.dipcoin.sui.perp;
 
 import io.dipcoin.sui.crypto.SuiKeyPair;
+import io.dipcoin.sui.model.Request;
 import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
 import io.dipcoin.sui.perp.client.PerpMarketClient;
 import io.dipcoin.sui.perp.client.PerpOnSignClient;
@@ -22,11 +23,14 @@ import io.dipcoin.sui.perp.util.DecimalUtil;
 import io.dipcoin.sui.perp.wallet.WalletKey;
 import io.dipcoin.sui.protocol.SuiClient;
 import io.dipcoin.sui.protocol.http.HttpService;
+import io.dipcoin.sui.protocol.http.response.GasPriceWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.shaded.org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
@@ -61,7 +65,7 @@ public class PerpOnSignClientTest {
         String subAccount = subAccountKeyPair.address();
         // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
         // gas limit 0.1 SUI , 0.1 * 10^9 
-        SuiTransactionBlockResponse response = perpOnSignClient.setSubAccount(subAccountKeyPair, subAccount, 1000L, DecimalUtil.toSui(new BigDecimal("0.1")));
+        SuiTransactionBlockResponse response = perpOnSignClient.setSubAccount(subAccountKeyPair, subAccount, this.getGasPrice(), DecimalUtil.toSui(new BigDecimal("0.1")));
         // https://testnet.suivision.xyz/txblock/3TMtqn7QPRmdtUEhchX48ZVf2HpjNEH229D8qzytJsX5
         log.info("Response: {}", response);
     }
@@ -74,7 +78,7 @@ public class PerpOnSignClientTest {
         BigInteger amount = new BigInteger("10000").multiply(BigInteger.TEN.pow(6));
         // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
         // gas limit 0.1 SUI , 0.1 * 10^9 
-        SuiTransactionBlockResponse response = perpOnSignClient.deposit(mainAccountKeyPair, amount, 1000L, DecimalUtil.toSui(new BigDecimal("0.1")));
+        SuiTransactionBlockResponse response = perpOnSignClient.deposit(mainAccountKeyPair, amount, this.getGasPrice(), DecimalUtil.toSui(new BigDecimal("0.1")));
         // https://testnet.suivision.xyz/txblock/CvS8oKVvHkjQHMtnatEgNQ1AjKd2upLAs429BimTgX6c
         log.info("Response: {}", response);
     }
@@ -87,7 +91,7 @@ public class PerpOnSignClientTest {
         BigInteger amount = new BigInteger("10000").multiply(BigInteger.TEN.pow(6));
         // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
         // gas limit 0.1 SUI , 0.1 * 10^9 
-        SuiTransactionBlockResponse response = perpOnSignClient.withdraw(mainAccountKeyPair, amount, 1000L, DecimalUtil.toSui(new BigDecimal("0.1")));
+        SuiTransactionBlockResponse response = perpOnSignClient.withdraw(mainAccountKeyPair, amount, this.getGasPrice(), DecimalUtil.toSui(new BigDecimal("0.1")));
         // https://testnet.suivision.xyz/txblock/FtyJ1nT4kwC8MDXwqrYVqEDePy2RquWhbf2xuGNJK7q9
         log.info("Response: {}", response);
     }
@@ -102,9 +106,43 @@ public class PerpOnSignClientTest {
         BigInteger amount = new BigInteger("200").multiply(BigInteger.TEN.pow(18));
         // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
         // gas limit 0.1 SUI , 0.1 * 10^9 
-        SuiTransactionBlockResponse response = perpOnSignClient.addMargin(mainAccountKeyPair, mainAccount, symbol, amount, 1000L, DecimalUtil.toSui(new BigDecimal("0.1")));
+        SuiTransactionBlockResponse response = perpOnSignClient.addMargin(mainAccountKeyPair, mainAccount, symbol, amount, this.getGasPrice(), DecimalUtil.toSui(new BigDecimal("0.1")));
         // https://testnet.suivision.xyz/txblock/HfimayLEjWDQkntX1kUxMheiKNoDAG8bvBSBLJA8hhHk
         log.info("Response: {}", response);
+    }
+
+    @Test
+    @Tag("suite")
+    void testRemoveMargin() {
+        SuiKeyPair mainAccountKeyPair = WalletKey.mainKeyPair;
+        String mainAccount = mainAccountKeyPair.address();
+        // addmargin 200 testUSDC
+        String symbol = "ETH-PERP";
+        BigInteger amount = new BigInteger("200").multiply(BigInteger.TEN.pow(18));
+        // gas price 1000 (For dynamic queries, please refer to the `getReferenceGasPrice()` method in `SuiClient`)
+        // gas limit 0.1 SUI , 0.1 * 10^9
+        SuiTransactionBlockResponse response = perpOnSignClient.removeMargin(mainAccountKeyPair, mainAccount, symbol, amount, this.getGasPrice(), DecimalUtil.toSui(new BigDecimal("0.1")));
+        // https://testnet.suivision.xyz/txblock/HfimayLEjWDQkntX1kUxMheiKNoDAG8bvBSBLJA8hhHk
+        log.info("Response: {}", response);
+    }
+
+    /**
+     * get gas price
+     * @return
+     */
+    public long getGasPrice() {
+        Request<?, GasPriceWrapper> request = suiClient.getReferenceGasPrice();
+        GasPriceWrapper response;
+        try {
+            response = request.send();
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Get GasPrice failed!", e);
+        }
+        String result = response.getResult();
+        if  (StringUtils.isEmpty(result)) {
+            return 1000L;
+        }
+        return Long.parseLong(result);
     }
 
 }
