@@ -100,8 +100,8 @@ public class PerpHttpClient extends AbstractHttpClient implements PerpClient {
     // ------------------------- user API -------------------------
 
     @Override
-    public List<PositionResponse> positions() {
-        return perpUserClient.positions();
+    public List<PositionResponse> positions(PositionRequest request) {
+        return perpUserClient.positions(request);
     }
 
     @Override
@@ -110,8 +110,8 @@ public class PerpHttpClient extends AbstractHttpClient implements PerpClient {
     }
 
     @Override
-    public AccountResponse account() {
-        return perpUserClient.account();
+    public AccountResponse account(AccountRequest request) {
+        return perpUserClient.account(request);
     }
 
     @Override

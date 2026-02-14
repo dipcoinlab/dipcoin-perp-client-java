@@ -18,12 +18,12 @@ import lombok.experimental.Accessors;
 
 /**
  * @author : Same
- * @datetime : 2025/10/23 13:13
- * @Description : Orders request
+ * @datetime : 2026/2/14 15:58
+ * @Description : Position Request
  */
 @Accessors(chain = true)
 @Data
-public class OrdersRequest {
+public class PositionRequest {
 
     /**
      * parent address
@@ -34,15 +34,5 @@ public class OrdersRequest {
      * trading pair
      */
     private String symbol;
-
-    /**
-     * page num
-     */
-    private int pageNum;
-
-    /**
-     * page size
-     */
-    private int pageSize;
 
 }

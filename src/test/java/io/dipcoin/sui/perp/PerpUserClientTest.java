@@ -18,9 +18,7 @@ import io.dipcoin.sui.perp.client.auth.AuthSession;
 import io.dipcoin.sui.perp.client.core.PerpAuthorization;
 import io.dipcoin.sui.perp.enums.PerpNetwork;
 import io.dipcoin.sui.perp.model.PageResponse;
-import io.dipcoin.sui.perp.model.request.HistoryOrdersRequest;
-import io.dipcoin.sui.perp.model.request.OrdersRequest;
-import io.dipcoin.sui.perp.model.request.PageRequest;
+import io.dipcoin.sui.perp.model.request.*;
 import io.dipcoin.sui.perp.model.response.*;
 import io.dipcoin.sui.perp.wallet.WalletKey;
 import lombok.extern.slf4j.Slf4j;
@@ -52,10 +50,24 @@ public class PerpUserClientTest {
         this.perpUserClient = new PerpUserClient(perpNetwork, authSession);
     }
 
-
     @Test
     void testPositions() {
-        List<PositionResponse> response = perpUserClient.positions();
+        // Query current address
+        List<PositionResponse> response = perpUserClient.positions(null);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(List.class);
+    }
+
+    @Test
+    void testVaultPositions() {
+        // Query vault address.
+        PositionRequest request = new PositionRequest()
+                .setSymbol("ETH-PERP")
+                // The parent address is the vault address.
+                .setParentAddress("0xvault_address");
+
+        List<PositionResponse> response = perpUserClient.positions(request);
         log.info("Response: {}", response);
         assertThat(response)
                 .isInstanceOf(List.class);
@@ -74,8 +86,36 @@ public class PerpUserClientTest {
     }
 
     @Test
+    void testVaultOrders() {
+        // Query vault address.
+        OrdersRequest request = new OrdersRequest();
+        request.setSymbol("ETH-PERP")
+                // The parent address is the vault address.
+                .setParentAddress("0xvault_address")
+                .setPageNum(1)
+                .setPageSize(20);
+        PageResponse<OrdersResponse> response = perpUserClient.orders(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(PageResponse.class);
+    }
+
+    @Test
     void testAccount() {
-        AccountResponse response = perpUserClient.account();
+        // Query current address
+        AccountResponse response = perpUserClient.account(null);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(AccountResponse.class);
+    }
+
+    @Test
+    void testVaultAccount() {
+        // Query vault address.
+        AccountRequest request = new AccountRequest()
+                // The parent address is the vault address.
+                .setParentAddress("0xvault_address");
+        AccountResponse response = perpUserClient.account(request);
         log.info("Response: {}", response);
         assertThat(response)
                 .isInstanceOf(AccountResponse.class);

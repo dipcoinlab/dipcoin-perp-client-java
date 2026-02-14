@@ -79,9 +79,10 @@ public interface PerpClient {
 
     /**
      * positions
+     * @param request
      * @return
      */
-    List<PositionResponse> positions();
+    List<PositionResponse> positions(PositionRequest request);
 
     /**
      * current orders
@@ -92,9 +93,10 @@ public interface PerpClient {
 
     /**
      * account info
+     * @param request
      * @return
      */
-    AccountResponse account();
+    AccountResponse account(AccountRequest request);
 
     /**
      * history orders

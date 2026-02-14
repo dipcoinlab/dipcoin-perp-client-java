@@ -1041,7 +1041,7 @@ public class TradingFlowExample {
         );
         
         // Check balance
-        AccountResponse account = httpClient.account();
+        AccountResponse account = httpClient.account(null);
         BigDecimal freeCollateral = DecimalUtil.fromBaseUnit(new BigInteger(account.getFreeCollateral()));
         System.out.println("Free collateral: " + freeCollateral);
         
@@ -1070,7 +1070,7 @@ public class TradingFlowExample {
         System.out.println("Buy order placed: " + orderId);
         
         // Monitor positions
-        List<PositionResponse> positions = httpClient.positions();
+        List<PositionResponse> positions = httpClient.positions(null);
         positions.forEach(pos -> {
             BigDecimal pnl = DecimalUtil.fromBaseUnit(new BigInteger(pos.getUnrealizedProfit()));
             System.out.println("Position: " + pos.getSymbol() + " " + pos.getSide());

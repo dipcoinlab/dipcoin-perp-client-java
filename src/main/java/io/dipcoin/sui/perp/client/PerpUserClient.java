@@ -23,9 +23,7 @@ import io.dipcoin.sui.perp.exception.PerpHttpException;
 import io.dipcoin.sui.perp.model.ApiResponse;
 import io.dipcoin.sui.perp.model.PageResponse;
 import io.dipcoin.sui.perp.model.PerpConfig;
-import io.dipcoin.sui.perp.model.request.HistoryOrdersRequest;
-import io.dipcoin.sui.perp.model.request.OrdersRequest;
-import io.dipcoin.sui.perp.model.request.PageRequest;
+import io.dipcoin.sui.perp.model.request.*;
 import io.dipcoin.sui.perp.model.response.*;
 
 import java.util.List;
@@ -48,10 +46,11 @@ public class PerpUserClient extends AbstractHttpClient {
 
     /**
      * positions
+     * @param request
      * @return
      */
-    public List<PositionResponse> positions() {
-        ApiResponse<List<PositionResponse>> response = get(perpConfig.perpEndpoint() + PerpPath.POSITIONS, null, mainAuth, new TypeReference<>() {});
+    public List<PositionResponse> positions(PositionRequest request) {
+        ApiResponse<List<PositionResponse>> response = get(perpConfig.perpEndpoint() + PerpPath.POSITIONS, super.toQueryParams(request), mainAuth, new TypeReference<>() {});
         if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
             return response.getData();
         } else {
@@ -75,10 +74,11 @@ public class PerpUserClient extends AbstractHttpClient {
 
     /**
      * account info
+     * @param request
      * @return
      */
-    public AccountResponse account() {
-        ApiResponse<AccountResponse> response = get(perpConfig.perpEndpoint() + PerpPath.ACCOUNT, null, mainAuth, new TypeReference<>() {});
+    public AccountResponse account(AccountRequest request) {
+        ApiResponse<AccountResponse> response = get(perpConfig.perpEndpoint() + PerpPath.ACCOUNT, super.toQueryParams(request), mainAuth, new TypeReference<>() {});
         if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
             return response.getData();
         } else {
