@@ -137,11 +137,46 @@ public class PerpUserClientTest {
     }
 
     @Test
+    void testVaultHistoryOrders() {
+        // Query vault address.
+        HistoryOrdersRequest request = new HistoryOrdersRequest();
+        long now = System.currentTimeMillis();
+        request.setSymbol("ETH-PERP")
+                // The parent address is the vault address.
+                .setParentAddress("0xvault_address")
+                .setPageNum(1)
+                .setPageSize(20)
+                .setBeginTime(now - 60 * 24 * 60 * 1000L)
+                .setEndTime(now);
+        PageResponse<HistoryOrdersResponse> response = perpUserClient.historyOrders(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(PageResponse.class);
+    }
+
+    @Test
     void testFundingSettlements() {
-        PageRequest request = new PageRequest();
+        FundingPageRequest request = new FundingPageRequest();
         request.setPageNum(1)
                 .setPageSize(20)
-                .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
+                .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L)
+                .setSymbol("BTC-PERP");
+        PageResponse<FundingSettlementsResponse> response = perpUserClient.fundingSettlements(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(PageResponse.class);
+    }
+
+    @Test
+    void testVaultFundingSettlements() {
+        // Query vault address.
+        FundingPageRequest request = new FundingPageRequest();
+        request.setPageNum(1)
+                .setPageSize(20)
+                .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L)
+                // The parent address is the vault address.
+                .setParentAddress("0xvault_address")
+                .setSymbol("BTC-PERP");
         PageResponse<FundingSettlementsResponse> response = perpUserClient.fundingSettlements(request);
         log.info("Response: {}", response);
         assertThat(response)
@@ -150,9 +185,24 @@ public class PerpUserClientTest {
 
     @Test
     void testBalanceChanges() {
-        PageRequest request = new PageRequest();
+        BalancePageRequest request = new BalancePageRequest();
         request.setPageNum(1)
                 .setPageSize(20)
+                .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
+        PageResponse<BalanceChangesResponse> response = perpUserClient.balanceChanges(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(PageResponse.class);
+    }
+
+    @Test
+    void testVaultBalanceChanges() {
+        // Query vault address.
+        BalancePageRequest request = new BalancePageRequest();
+        request.setPageNum(1)
+                .setPageSize(20)
+                // The parent address is the vault address.
+                .setParentAddress("0xvault_address")
                 .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
         PageResponse<BalanceChangesResponse> response = perpUserClient.balanceChanges(request);
         log.info("Response: {}", response);

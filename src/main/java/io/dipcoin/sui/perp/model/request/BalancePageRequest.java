@@ -18,12 +18,17 @@ import lombok.experimental.Accessors;
 
 /**
  * @author : Same
- * @datetime : 2025/10/24 16:07
- * @Description : Page request
+ * @datetime : 2026/2/14 16:52
+ * @Description : Balance Changes Page Request
  */
 @Accessors(chain = true)
 @Data
-public class PageRequest {
+public class BalancePageRequest {
+
+    /**
+     * parent address
+     */
+    private String parentAddress;
 
     /**
      * page num

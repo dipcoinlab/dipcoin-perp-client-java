@@ -120,12 +120,12 @@ public class PerpHttpClient extends AbstractHttpClient implements PerpClient {
     }
 
     @Override
-    public PageResponse<FundingSettlementsResponse> fundingSettlements(PageRequest request) {
+    public PageResponse<FundingSettlementsResponse> fundingSettlements(FundingPageRequest request) {
         return perpUserClient.fundingSettlements(request);
     }
 
     @Override
-    public PageResponse<BalanceChangesResponse> balanceChanges(PageRequest request) {
+    public PageResponse<BalanceChangesResponse> balanceChanges(BalancePageRequest request) {
         return perpUserClient.balanceChanges(request);
     }
 

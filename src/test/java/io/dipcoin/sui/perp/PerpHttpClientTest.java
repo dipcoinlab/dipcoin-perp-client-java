@@ -300,31 +300,79 @@ public class PerpHttpClientTest {
         PageResponse<HistoryOrdersResponse> response = perpClient.historyOrders(request);
         log.info("Response: {}", response);
         assertThat(response)
-                .isInstanceOf(AccountResponse.class);
+                .isInstanceOf(PageResponse.class);
+    }
+
+    @Test
+    void testVaultHistoryOrders() {
+        // Query vault address.
+        HistoryOrdersRequest request = new HistoryOrdersRequest();
+        long now = System.currentTimeMillis();
+        request.setSymbol("ETH-PERP")
+                // The parent address is the vault address.
+                .setParentAddress("0xvault_address")
+                .setPageNum(1)
+                .setPageSize(20)
+                .setBeginTime(now - 60 * 24 * 60 * 1000L)
+                .setEndTime(now);
+        PageResponse<HistoryOrdersResponse> response = perpClient.historyOrders(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(PageResponse.class);
     }
 
     @Test
     void testFundingSettlements() {
-        PageRequest request = new PageRequest();
+        FundingPageRequest request = new FundingPageRequest();
         request.setPageNum(1)
                 .setPageSize(20)
                 .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
         PageResponse<FundingSettlementsResponse> response = perpClient.fundingSettlements(request);
         log.info("Response: {}", response);
         assertThat(response)
-                .isInstanceOf(AccountResponse.class);
+                .isInstanceOf(PageResponse.class);
+    }
+
+    @Test
+    void testVaultFundingSettlements() {
+        // Query vault address.
+        FundingPageRequest request = new FundingPageRequest();
+        request.setPageNum(1)
+                .setPageSize(20)
+                // The parent address is the vault address.
+                .setParentAddress("0xvault_address")
+                .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
+        PageResponse<FundingSettlementsResponse> response = perpClient.fundingSettlements(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(PageResponse.class);
     }
 
     @Test
     void testBalanceChanges() {
-        PageRequest request = new PageRequest();
+        BalancePageRequest request = new BalancePageRequest();
         request.setPageNum(1)
                 .setPageSize(20)
                 .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
         PageResponse<BalanceChangesResponse> response = perpClient.balanceChanges(request);
         log.info("Response: {}", response);
         assertThat(response)
-                .isInstanceOf(AccountResponse.class);
+                .isInstanceOf(PageResponse.class);
+    }
+
+    @Test
+    void testVaultBalanceChanges() {
+        // Query vault address.
+        BalancePageRequest request = new BalancePageRequest();
+        request.setPageNum(1)
+                .setPageSize(20)
+                // The parent address is the vault address.
+                .setParentAddress("0xvault_address")
+                .setBeginTime(System.currentTimeMillis() - 60 * 24 * 60 * 1000L);
+        PageResponse<BalanceChangesResponse> response = perpClient.balanceChanges(request);
+        log.info("Response: {}", response);
+        assertThat(response)
+                .isInstanceOf(PageResponse.class);
     }
 
     // ------------------------- market API -------------------------

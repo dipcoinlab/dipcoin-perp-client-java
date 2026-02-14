@@ -105,7 +105,7 @@ public class PerpUserClient extends AbstractHttpClient {
      * @param request
      * @return
      */
-    public PageResponse<FundingSettlementsResponse> fundingSettlements(PageRequest request) {
+    public PageResponse<FundingSettlementsResponse> fundingSettlements(FundingPageRequest request) {
         ApiResponse<PageResponse<FundingSettlementsResponse>> response = get(perpConfig.perpEndpoint() + PerpPath.FUNDING_SETTLEMENTS, super.toQueryParams(request), mainAuth, new TypeReference<>() {});
         if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
             return response.getData();
@@ -119,7 +119,7 @@ public class PerpUserClient extends AbstractHttpClient {
      * @param request
      * @return
      */
-    public PageResponse<BalanceChangesResponse> balanceChanges(PageRequest request) {
+    public PageResponse<BalanceChangesResponse> balanceChanges(BalancePageRequest request) {
         ApiResponse<PageResponse<BalanceChangesResponse>> response = get(perpConfig.perpEndpoint() + PerpPath.BALANCE_CHANGES, super.toQueryParams(request), mainAuth, new TypeReference<>() {});
         if (response.getCode() == ErrorCode.SUCCESS.getCode()) {
             return response.getData();

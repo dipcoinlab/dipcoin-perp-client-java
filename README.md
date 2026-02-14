@@ -126,6 +126,79 @@ public class QuickStartExample {
 }
 ```
 
+Complete example demonstrating the modular client initialization and basic operations for the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+import io.dipcoin.sui.crypto.Ed25519KeyPair;
+import io.dipcoin.sui.crypto.SuiKeyPair;
+import io.dipcoin.sui.perp.client.*;
+import io.dipcoin.sui.perp.enums.OrderSide;
+import io.dipcoin.sui.perp.enums.OrderType;
+import io.dipcoin.sui.perp.enums.PerpNetwork;
+import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
+import io.dipcoin.sui.perp.util.DecimalUtil;
+import io.dipcoin.sui.perp.util.OrderUtil;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+public class QuickStartExample {
+    public static void main(String[] args) {
+        // 1. Initialize keypairs
+        // There are three methods to construct a private key pair: `suiPrivKey`, mnemonic phrase, and hexadecimal private key.
+//        SuiKeyPair mainKeyPair = SuiKeyPair.decodeSuiPrivateKey("suiprivKeyxxxx");
+//        SuiKeyPair mainKeyPair = Ed25519KeyPair.deriveKeypair("mnemonics", null);
+        SuiKeyPair mainKeyPair = Ed25519KeyPair.decodeHex("main_private_key_hex");
+        SuiKeyPair subKeyPair = Ed25519KeyPair.decodeHex("sub_private_key_hex");
+        
+        // 2. Create unified HTTP client
+        PerpHttpClient httpClient = new PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair);
+        
+        // 3. Create on-chain client for blockchain operations
+        PerpOnSignClient onChainClient = new PerpOnSignClient(PerpNetwork.TESTNET);
+        
+        // 4. Set sub account (one-time setup)
+        onChainClient.setSubAccount(
+            mainKeyPair,
+            subKeyPair.address(),
+            1000L,
+            DecimalUtil.toSui(new BigDecimal("0.1"))
+        );
+        
+        // 5. Deposit funds - USDC use 6 decimal precision
+        BigInteger depositAmount = new BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)); // 1000 USDC
+        onChainClient.deposit(mainKeyPair, depositAmount, 1000L, DecimalUtil.toSui(new BigDecimal("0.1")));
+        
+        // 6. Get market info
+        String perpId = httpClient.getMarketPerpId("BTC-PERP");
+        
+        // 7. Place order
+        PlaceOrderRequest orderRequest = new PlaceOrderRequest()
+                .setSymbol("BTC-PERP")
+                .setMarket(perpId)
+                .setPrice(DecimalUtil.toBaseUnit(new BigDecimal("50000")))
+                .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("1")))
+                .setSide(OrderSide.BUY.getCode())
+                .setOrderType(OrderType.LIMIT.getCode())
+                .setLeverage(DecimalUtil.toBaseUnit(new BigInteger("10")))
+                .setReduceOnly(false)
+                .setCreator("0xvault_address")
+                .setClientId("order_001");
+        
+        // Sign with sub account
+        String salt = new String(OrderUtil.getSalt());
+        orderRequest.setSalt(salt);
+        String signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair);
+        orderRequest.setOrderSignature(signature);
+        
+        String orderId = httpClient.placeOrder(orderRequest);
+        System.out.println("Order placed: " + orderId);
+    }
+}
+```
+
 ## Off-Chain API Modules
 
 ### PerpTradeClient
@@ -188,6 +261,46 @@ request.setOrderSignature(signature);
 String orderId = tradeClient.placeOrder(request);
 System.out.println("Order ID: " + orderId);
 ```
+For the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+import io.dipcoin.sui.perp.enums.OrderSide;
+import io.dipcoin.sui.perp.enums.OrderType;
+import io.dipcoin.sui.perp.model.request.PlaceOrderRequest;
+import io.dipcoin.sui.perp.util.DecimalUtil;
+import io.dipcoin.sui.perp.util.OrderUtil;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+// Get market perp ID first
+String perpId = marketClient.getMarketPerpId("BTC-PERP");
+
+// Create order request with 18 decimal precision
+PlaceOrderRequest request = new PlaceOrderRequest()
+        .setSymbol("BTC-PERP")
+        .setMarket(perpId)
+        .setPrice(DecimalUtil.toBaseUnit(new BigDecimal("50000")))      // 50000 USDC
+        .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("2")))       // 2 BTC
+        .setSide(OrderSide.BUY.getCode())
+        .setOrderType(OrderType.LIMIT.getCode())
+        .setLeverage(DecimalUtil.toBaseUnit(new BigInteger("10")))      // 10x leverage
+        .setReduceOnly(false)
+        .setCreator("0xvault_address")
+        .setClientId("unique_client_id");
+
+// Sign order with sub account
+String salt = new String(OrderUtil.getSalt());
+request.setSalt(salt);
+String signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), subKeyPair);
+request.setOrderSignature(signature);
+
+// Place order
+String orderId = tradeClient.placeOrder(request);
+System.out.println("Order ID: " + orderId);
+```
 
 **Market Order Example:**
 
@@ -209,6 +322,28 @@ marketOrder.setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrde
 
 String orderId = tradeClient.placeOrder(marketOrder);
 ```
+For the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+PlaceOrderRequest marketOrder = new PlaceOrderRequest()
+        .setSymbol("BTC-PERP")
+        .setMarket(perpId)
+        .setQuantity(DecimalUtil.toBaseUnit(new BigDecimal("1")))  // 1 BTC
+        .setSide(OrderSide.SELL.getCode())
+        .setOrderType(OrderType.MARKET.getCode())
+        .setLeverage(DecimalUtil.toBaseUnit(new BigInteger("5")))
+        .setReduceOnly(false)
+        .setCreator("0xvault_address")
+        .setClientId("market_order_001");
+
+String salt = new String(OrderUtil.getSalt());
+marketOrder.setSalt(salt);
+marketOrder.setOrderSignature(OrderUtil.getSignature(OrderUtil.getSerializedOrder(marketOrder), subKeyPair));
+
+String orderId = tradeClient.placeOrder(marketOrder);
+```
 
 #### Cancel Order
 
@@ -217,6 +352,22 @@ import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
 import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
 
 CancelOrderRequest request = new CancelOrderRequest()
+        .setOrderId("order_id_to_cancel")
+        .setSymbol("BTC-PERP");
+
+CancelOrderResponse response = tradeClient.cancelOrder(request);
+System.out.println("Cancelled order: " + response.getOrderId());
+```
+For the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
+import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
+
+CancelOrderRequest request = new CancelOrderRequest()
+        .setParentAddress("0xvault_address")
         .setOrderId("order_id_to_cancel")
         .setSymbol("BTC-PERP");
 
@@ -250,7 +401,26 @@ PerpUserClient userClient = new PerpUserClient(PerpNetwork.TESTNET, mainAuth);
 ```java
 import io.dipcoin.sui.perp.model.response.AccountResponse;
 
-AccountResponse account = userClient.account();
+AccountResponse account = userClient.account(null);
+System.out.println("Wallet balance: " + account.getWalletBalance());
+System.out.println("Free collateral: " + account.getFreeCollateral());
+System.out.println("Total position margin: " + account.getTotalPositionMargin());
+System.out.println("Total unrealized profit: " + account.getTotalUnrealizedProfit());
+System.out.println("Account value: " + account.getAccountValue());
+```
+
+For the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+import io.dipcoin.sui.perp.model.response.AccountResponse;
+
+// Query vault address.
+AccountRequest request = new AccountRequest()
+        // The parent address is the vault address.
+        .setParentAddress("0xvault_address");
+AccountResponse account = userClient.account(request);
 System.out.println("Wallet balance: " + account.getWalletBalance());
 System.out.println("Free collateral: " + account.getFreeCollateral());
 System.out.println("Total position margin: " + account.getTotalPositionMargin());
@@ -264,7 +434,32 @@ System.out.println("Account value: " + account.getAccountValue());
 import io.dipcoin.sui.perp.model.response.PositionResponse;
 import java.util.List;
 
-List<PositionResponse> positions = userClient.positions();
+List<PositionResponse> positions = userClient.positions(null);
+for (PositionResponse position : positions) {
+    System.out.println("Symbol: " + position.getSymbol());
+    System.out.println("Side: " + position.getSide());
+    System.out.println("Quantity: " + position.getQuantity());
+    System.out.println("Entry price: " + position.getAvgEntryPrice());
+    System.out.println("Unrealized P&L: " + position.getUnrealizedProfit());
+    System.out.println("Liquidation price: " + position.getLiquidationPrice());
+}
+```
+
+For the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+import io.dipcoin.sui.perp.model.response.PositionResponse;
+import java.util.List;
+
+// Query vault address.
+PositionRequest request = new PositionRequest()
+        .setSymbol("ETH-PERP")
+        // The parent address is the vault address.
+        .setParentAddress("0xvault_address");
+
+List<PositionResponse> positions = userClient.positions(request);
 for (PositionResponse position : positions) {
     System.out.println("Symbol: " + position.getSymbol());
     System.out.println("Side: " + position.getSide());
@@ -291,6 +486,27 @@ PageResponse<OrdersResponse> orders = userClient.orders(request);
 System.out.println("Total orders: " + orders.getTotal());
 ```
 
+For the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+import io.dipcoin.sui.perp.model.PageResponse;
+import io.dipcoin.sui.perp.model.request.OrdersRequest;
+import io.dipcoin.sui.perp.model.response.OrdersResponse;
+
+// Query vault address.
+OrdersRequest request = new OrdersRequest()
+        .setSymbol("BTC-PERP")  // Optional filter
+        // The parent address is the vault address.
+        .setParentAddress("0xvault_address")
+        .setPage(1)
+        .setPageSize(20);
+
+PageResponse<OrdersResponse> orders = userClient.orders(request);
+System.out.println("Total orders: " + orders.getTotal());
+```
+
 #### Get Order History
 
 ```java
@@ -305,17 +521,58 @@ HistoryOrdersRequest request = new HistoryOrdersRequest()
 PageResponse<HistoryOrdersResponse> history = userClient.historyOrders(request);
 ```
 
+For the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+import io.dipcoin.sui.perp.model.request.HistoryOrdersRequest;
+import io.dipcoin.sui.perp.model.response.HistoryOrdersResponse;
+
+// Query vault address.
+HistoryOrdersRequest request = new HistoryOrdersRequest()
+        // The parent address is the vault address.
+        .setParentAddress("0xvault_address")
+        .setSymbol("BTC-PERP")
+        .setPage(1)
+        .setPageSize(20);
+
+PageResponse<HistoryOrdersResponse> history = userClient.historyOrders(request);
+```
+
 #### Get Funding Settlements
 
 ```java
-import io.dipcoin.sui.perp.model.request.PageRequest;
+import io.dipcoin.sui.perp.model.request.FundingPageRequest;
+import io.dipcoin.sui.perp.model.request.BalancePageRequest;
 import io.dipcoin.sui.perp.model.response.FundingSettlementsResponse;
 
-PageRequest request = new PageRequest()
+FundingPageRequest request = new FundingPageRequest()
+        .setSymbol("BTC-PERP")
         .setPage(1)
         .setPageSize(20);
 
 PageResponse<FundingSettlementsResponse> settlements = userClient.fundingSettlements(request);
+```
+
+For the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+import io.dipcoin.sui.perp.model.request.FundingPageRequest;
+import io.dipcoin.sui.perp.model.request.BalancePageRequest;
+import io.dipcoin.sui.perp.model.response.FundingSettlementsResponse;
+
+// Query vault address.
+FundingPageRequest request = new FundingPageRequest()
+        // The parent address is the vault address.
+        .setParentAddress("0xvault_address")
+        .setSymbol("BTC-PERP")
+        .setPage(1)
+        .setPageSize(20);
+
+        PageResponse<FundingSettlementsResponse> settlements = userClient.fundingSettlements(request);
 ```
 
 #### Get Balance Changes
@@ -323,7 +580,24 @@ PageResponse<FundingSettlementsResponse> settlements = userClient.fundingSettlem
 ```java
 import io.dipcoin.sui.perp.model.response.BalanceChangesResponse;
 
-PageRequest request = new PageRequest()
+BalancePageRequest request = new BalancePageRequest()
+        .setPage(1)
+        .setPageSize(20);
+
+PageResponse<BalanceChangesResponse> changes = userClient.balanceChanges(request);
+```
+
+For the vault version:
+
+> Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
+
+```java
+import io.dipcoin.sui.perp.model.response.BalanceChangesResponse;
+
+// Query vault address.
+BalancePageRequest request = new BalancePageRequest()
+        // The parent address is the vault address.
+        .setParentAddress("0xvault_address")
         .setPage(1)
         .setPageSize(20);
 

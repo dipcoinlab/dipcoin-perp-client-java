@@ -18,12 +18,12 @@ import lombok.experimental.Accessors;
 
 /**
  * @author : Same
- * @datetime : 2025/10/24 15:48
- * @Description : HistoryOrders request
+ * @datetime : 2025/10/24 16:07
+ * @Description : Funding settlement Page Request
  */
 @Accessors(chain = true)
 @Data
-public class HistoryOrdersRequest {
+public class FundingPageRequest {
 
     /**
      * parent address
@@ -46,13 +46,8 @@ public class HistoryOrdersRequest {
     private int pageSize;
 
     /**
-     * begin time
+     * start time (in milliseconds), defaulting to 90 days ago
      */
-    private long beginTime;
-
-    /**
-     * end time
-     */
-    private long endTime;
+    private long beginTime = System.currentTimeMillis() - 90 * 24 * 60 * 1000L;
 
 }

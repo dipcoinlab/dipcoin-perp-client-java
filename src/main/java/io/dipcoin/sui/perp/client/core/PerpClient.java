@@ -110,14 +110,14 @@ public interface PerpClient {
      * @param request
      * @return
      */
-    PageResponse<FundingSettlementsResponse> fundingSettlements(PageRequest request);
+    PageResponse<FundingSettlementsResponse> fundingSettlements(FundingPageRequest request);
 
     /**
      * history balance changes
      * @param request
      * @return
      */
-    PageResponse<BalanceChangesResponse> balanceChanges(PageRequest request);
+    PageResponse<BalanceChangesResponse> balanceChanges(BalancePageRequest request);
 
     // ------------------------- market API -------------------------
 
