@@ -651,7 +651,8 @@ val client = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
 // Access account information
 val mainAddress = client.mainAddress
 val subAddress = client.subAddress
-SuiKeyPair mainAccount = client.mainAccountSuiKeyPair subAccount = client.subAccount
+SuiKeyPair mainAccount = client.mainAccount
+SuiKeyPair subAccount = client.subAccount
 ```
 
 #### Features
@@ -720,7 +721,8 @@ import io.dipcoin.sui.protocol.http.HttpService
 // Basic initialization
 PerpOnSignClient onChainClient = PerpOnSignClient(PerpNetwork.TESTNET)
 // With custom SuiClient
-SuiClient suiClient = SuiClient.build(new HttpService("https://fullnode.testnet.sui.io:443"))PerpOnSignClient onChainClient = PerpOnSignClient(suiClient, PerpNetwork.TESTNET)
+SuiClient suiClient = SuiClient.build(new HttpService("https://fullnode.testnet.sui.io:443"))
+PerpOnSignClient onChainClient = PerpOnSignClient(suiClient, PerpNetwork.TESTNET)
 // With custom market client
 PerpMarketClient marketClient = PerpMarketClient(PerpNetwork.TESTNET)PerpOnSignClient onChainClient = PerpOnSignClient(suiClient, PerpNetwork.TESTNET, marketClient)
 ```
