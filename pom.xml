@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.dipcoin</groupId>
-    <artifactId>sui-perp-client-java</artifactId>
+    <artifactId>dipcoin-perp-client-kotlin</artifactId>
     <version>1.0.4</version>
-    <name>sui-perp-client-java</name>
-    <description>Java Implementation of the Dipcoin Perp Client Library.</description>
-    <url>https://github.com/dipcoinlab/dipcoinlab/dipcoin-perp-client-java</url>
+    <name>dipcoin-perp-client-kotlin</name>
+    <description>Kotlin Implementation of the Dipcoin Perp Client Library.</description>
+    <url>https://github.com/dipcoinlab/dipcoin-perp-client-kotlin</url>
 
     <licenses>
         <license>
@@ -30,19 +30,20 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/dipcoinlab/dipcoin-perp-client-java.git</connection>
-        <developerConnection>scm:git:ssh://github.com:dipcoinlab/dipcoin-perp-client-java.git</developerConnection>
-        <url>https://github.com/dipcoinlab/dipcoin-perp-client-java</url>
+        <connection>scm:git:git://github.com/dipcoinlab/dipcoin-perp-client-kotlin.git</connection>
+        <developerConnection>scm:git:ssh://github.com:dipcoinlab/dipcoin-perp-client-kotlin.git</developerConnection>
+        <url>https://github.com/dipcoinlab/dipcoin-perp-client-kotlin</url>
     </scm>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <kotlin.version>2.0.21</kotlin.version>
+        <kotlin.compiler.jvmTarget>21</kotlin.compiler.jvmTarget>
         <sui4j.version>0.1.1</sui4j.version>
-        <lombok.version>1.18.30</lombok.version>
         <okhttp.version>4.12.0</okhttp.version>
-        <jackson.version>2.15.0</jackson.version>
+        <jackson.version>2.15.2</jackson.version>
         <slf4j.version>2.0.13</slf4j.version>
         <logback.version>1.5.6</logback.version>
 
@@ -50,7 +51,8 @@
         <bitcoinj.version>0.16.1</bitcoinj.version>
 
         <!-- Test -->
-        <junit.version>5.9.2</junit.version>
+        <junit.version>5.10.2</junit.version>
+        <surefire.version>3.5.0</surefire.version>
         <mockito.version>5.3.1</mockito.version>
         <testcontainers.version>1.18.3</testcontainers.version>
         <assertj.version>3.24.2</assertj.version>
@@ -71,12 +73,16 @@
             </exclusions>
         </dependency>
 
-        <!-- lombok annotations -->
+        <!-- Kotlin -->
         <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-            <version>${lombok.version}</version>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
+            <version>${kotlin.version}</version>
         </dependency>
 
         <!-- OkHttp underlying engine-->
@@ -100,6 +106,11 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
             <version>${jackson.version}</version>
         </dependency>
 
@@ -156,6 +167,12 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-test-junit5</artifactId>
+            <version>${kotlin.version}</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Mock tools -->
         <dependency>
@@ -210,19 +227,47 @@
     </distributionManagement>
 
     <build>
+        <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+        <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
         <plugins>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.version}</version>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>test-compile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>test-compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>${lombok.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
+                <version>3.11.0</version>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- java source -->
@@ -240,7 +285,7 @@
                 </executions>
             </plugin>
 
-            <!-- java doc -->
+            <!-- kotlin doc (dokka) - optional; javadoc skipped for Kotlin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -250,6 +295,7 @@
                     <source>21</source>
                     <encoding>UTF-8</encoding>
                     <doclint>none</doclint>
+                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>
@@ -259,6 +305,13 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!-- Surefire: 3.5.0+ required for JUnit 5.10+ getAncestors() compatibility -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.version}</version>
             </plugin>
 
             <!-- Test coverage -->
