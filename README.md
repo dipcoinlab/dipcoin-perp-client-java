@@ -102,27 +102,28 @@ fun main() {
         
         // 7. Place order
         val orderRequest = PlaceOrderRequest(
-    symbol = "BTC-PERP",
-    market = perpId,
-    price = DecimalUtil.toBaseUnit(BigDecimal("50000")),
-    quantity = DecimalUtil.toBaseUnit(BigDecimal("1")),
-    side = OrderSide.BUY.code,
-    orderType = OrderType.LIMIT.code,
-    leverage = DecimalUtil.toBaseUnit(BigInteger("10")),
-    reduceOnly = false,
-    creator = mainKeyPair.address(),
-    clientId = "order_001"
-)
+            symbol = "BTC-PERP",
+            market = perpId,
+            price = DecimalUtil.toBaseUnit(BigDecimal("50000")),
+            quantity = DecimalUtil.toBaseUnit(BigDecimal("1")),
+            side = OrderSide.BUY.code,
+            orderType = OrderType.LIMIT.code,
+            leverage = DecimalUtil.toBaseUnit(BigInteger("10")),
+            reduceOnly = false,
+            creator = mainKeyPair.address(),
+            clientId = "order_001"
+        )
         
         // Sign with sub account
         val salt = String(OrderUtil.getSalt());
         orderRequest.salt = salt
-        val signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair);
+        val signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
         orderRequest.orderSignature = signature
         
         val orderId = httpClient.placeOrder(orderRequest)
-    println("Order placed: " + orderId)
+        println("Order placed: " + orderId)
 }
+```
 
 Complete example demonstrating the modular client initialization and basic operations for the vault version:
 
@@ -173,26 +174,26 @@ fun main() {
         
         // 7. Place order
         val orderRequest = PlaceOrderRequest(
-    symbol = "BTC-PERP",
-    market = perpId,
-    price = DecimalUtil.toBaseUnit(BigDecimal("50000")),
-    quantity = DecimalUtil.toBaseUnit(BigDecimal("1")),
-    side = OrderSide.BUY.code,
-    orderType = OrderType.LIMIT.code,
-    leverage = DecimalUtil.toBaseUnit(BigInteger("10")),
-    reduceOnly = false,
-    creator = "0xvault_address",
-    clientId = "order_001"
-)
+            symbol = "BTC-PERP",
+            market = perpId,
+            price = DecimalUtil.toBaseUnit(BigDecimal("50000")),
+            quantity = DecimalUtil.toBaseUnit(BigDecimal("1")),
+            side = OrderSide.BUY.code,
+            orderType = OrderType.LIMIT.code,
+            leverage = DecimalUtil.toBaseUnit(BigInteger("10")),
+            reduceOnly = false,
+            creator = "0xvault_address",
+            clientId = "order_001"
+        )
         
         // Sign with sub account
         val salt = String(OrderUtil.getSalt());
         orderRequest.salt = salt
-        val signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair);
+        val signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
         orderRequest.orderSignature = signature
         
         val orderId = httpClient.placeOrder(orderRequest)
-        println("Order placed: " + orderId);
+        println("Order placed: " + orderId)
     }
 }
 ```
@@ -355,19 +356,19 @@ import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
 
 val request = CancelOrderRequest(orderId = "order_id_to_cancel", symbol = "BTC-PERP")
 val response = tradeClient.cancelOrder(request)
-println("Cancelled order: " + response.orderId);
+println("Cancelled order: " + response.orderId)
 ```
 For the vault version:
 
 > Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
 
 ```kotlin
-import io.dipcoin.sui.perp.model.request.CancelOrderRequest;
-import io.dipcoin.sui.perp.model.response.CancelOrderResponse;
+import io.dipcoin.sui.perp.model.request.CancelOrderRequest
+import io.dipcoin.sui.perp.model.response.CancelOrderResponse
 
 val request = CancelOrderRequest(parentAddress = "0xvault_address", orderId = "order_id_to_cancel", symbol = "BTC-PERP")
 val response = tradeClient.cancelOrder(request)
-println("Cancelled order: " + response.orderId);
+println("Cancelled order: " + response.orderId)
 ```
 
 ---
@@ -379,9 +380,9 @@ println("Cancelled order: " + response.orderId);
 #### Initialization
 
 ```kotlin
-import io.dipcoin.sui.perp.client.PerpUserClient;
-import io.dipcoin.sui.perp.client.auth.AuthSession;
-import io.dipcoin.sui.perp.client.core.PerpAuthorization;
+import io.dipcoin.sui.perp.client.PerpUserClient
+import io.dipcoin.sui.perp.client.auth.AuthSession
+import io.dipcoin.sui.perp.client.core.PerpAuthorization
 
 // Create authorization with main account
 val perpAuth = PerpAuthorization(PerpNetwork.TESTNET)
@@ -399,9 +400,9 @@ import io.dipcoin.sui.perp.model.response.AccountResponse;
 AccountResponse account = userClient.account(null);
 println("Wallet balance: " + account.walletBalance);
 println("Free collateral: " + account.freeCollateral);
-println("Total position margin: " + account.totalPositionMargin);
-println("Total unrealized profit: " + account.totalUnrealizedProfit);
-println("Account value: " + account.accountValue);
+println("Total position margin: " + account.totalPositionMargin)
+println("Total unrealized profit: " + account.totalUnrealizedProfit)
+println("Account value: " + account.accountValue)
 ```
 
 For the vault version:
