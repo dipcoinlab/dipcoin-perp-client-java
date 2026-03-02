@@ -25,13 +25,13 @@ public enum PerpFunction {
 
     SET_SUB_ACCOUNT("sub_accounts", "set_sub_account"),
 
-    DEPOSIT("bank", "deposit"),
+    DEPOSIT("bank", "deposit_v2"),
 
-    WITHDRAW("bank", "withdraw"),
+    WITHDRAW("bank", "withdraw_v2"),
 
-    ADD_MARGIN("exchange", "add_margin"),
+    ADD_MARGIN("exchange", "add_margin_v2"),
 
-    REMOVE_MARGIN("exchange", "remove_margin"),
+    REMOVE_MARGIN("exchange", "remove_margin_v2"),
 
     ;
 

@@ -21,7 +21,6 @@ import io.dipcoin.sui.bcs.types.transaction.Command;
 import io.dipcoin.sui.bcs.types.transaction.ProgrammableMoveCall;
 import io.dipcoin.sui.bcs.types.transaction.ProgrammableTransaction;
 import io.dipcoin.sui.client.TransactionBuilder;
-import io.dipcoin.sui.crypto.Ed25519KeyPair;
 import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse;
 import io.dipcoin.sui.perp.client.chain.AbstractOnChainClient;
 import io.dipcoin.sui.perp.client.chain.WalletService;
@@ -141,9 +140,6 @@ public class PerpOffSignClient extends AbstractOnChainClient {
                         Argument.ofInput(programmableTx.addInput(this.getProtocolConfig())),
                         Argument.ofInput(programmableTx.addInput(this.getBank())),
                         Argument.ofInput(programmableTx.addInput(this.getTxIndexer())),
-//                        Argument.ofInput(programmableTx.addInput(new CallArgPure(OrderUtil.getSalt(),
-                        Argument.ofInput(programmableTx.addInput(new CallArgPure(Ed25519KeyPair.generate().privateKey(),
-                                PureBcs.BasePureType.VECTOR_U8))),
                         Argument.ofInput(programmableTx.addInput(new CallArgPure(sender,
                                 PureBcs.BasePureType.ADDRESS))),
                         Argument.ofInput(programmableTx.addInput(new CallArgPure(amount.longValue(),
@@ -196,9 +192,6 @@ public class PerpOffSignClient extends AbstractOnChainClient {
                         Argument.ofInput(programmableTx.addInput(this.getProtocolConfig())),
                         Argument.ofInput(programmableTx.addInput(this.getBank())),
                         Argument.ofInput(programmableTx.addInput(this.getTxIndexer())),
-//                        Argument.ofInput(programmableTx.addInput(new CallArgPure(OrderUtil.getSalt(),
-                        Argument.ofInput(programmableTx.addInput(new CallArgPure(Ed25519KeyPair.generate().privateKey(),
-                                PureBcs.BasePureType.VECTOR_U8))),
                         Argument.ofInput(programmableTx.addInput(new CallArgPure(sender,
                                 PureBcs.BasePureType.ADDRESS))),
                         Argument.ofInput(programmableTx.addInput(new CallArgPure(amount,
@@ -257,9 +250,7 @@ public class PerpOffSignClient extends AbstractOnChainClient {
                         Argument.ofInput(programmableTx.addInput(new CallArgPure(subAddress,
                                 PureBcs.BasePureType.ADDRESS))),
                         Argument.ofInput(programmableTx.addInput(new CallArgPure(amount,
-                                PureBcs.BasePureType.U128))),
-                        Argument.ofInput(programmableTx.addInput(new CallArgPure(Ed25519KeyPair.generate().privateKey(),
-                                PureBcs.BasePureType.VECTOR_U8)))
+                                PureBcs.BasePureType.U128)))
                 )
         );
 
@@ -315,9 +306,7 @@ public class PerpOffSignClient extends AbstractOnChainClient {
                         Argument.ofInput(programmableTx.addInput(new CallArgPure(subAddress,
                                 PureBcs.BasePureType.ADDRESS))),
                         Argument.ofInput(programmableTx.addInput(new CallArgPure(amount,
-                                PureBcs.BasePureType.U128))),
-                        Argument.ofInput(programmableTx.addInput(new CallArgPure(Ed25519KeyPair.generate().privateKey(),
-                                PureBcs.BasePureType.VECTOR_U8)))
+                                PureBcs.BasePureType.U128)))
                 )
         );
 
