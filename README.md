@@ -75,14 +75,14 @@ fun main() {
     // There are three methods to construct a private key pair: `suiPrivKey`, mnemonic phrase, and hexadecimal private key.
 //        SuiKeyPair mainKeyPair = SuiKeyPair.decodeSuiPrivateKey("suiprivKeyxxxx")
 //        SuiKeyPair mainKeyPair = Ed25519KeyPair.deriveKeypair("mnemonics", null)
-    val mainKeyPair = Ed25519KeyPair.decodeHex("main_private_key_hex")
-    val subKeyPair = Ed25519KeyPair.decodeHex("sub_private_key_hex")
-    
-    // 2. Create unified HTTP client
-    val httpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
+    val mainKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("main_private_key_hex")
+        val subKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("sub_private_key_hex")
         
-    // 3. Create on-chain client for blockchain operations
-    val onChainClient = PerpOnSignClient(PerpNetwork.TESTNET)
+        // 2. Create unified HTTP client
+        val httpClient: PerpHttpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
+        
+        // 3. Create on-chain client for blockchain operations
+        val onChainClient: PerpOnSignClient = PerpOnSignClient(PerpNetwork.TESTNET)
     
     // 4. Set sub account (one-time setup)
     onChainClient.setSubAccount(
@@ -92,14 +92,14 @@ fun main() {
         DecimalUtil.toSui(BigDecimal("0.1"))
     )        
     // 5. Deposit funds - USDC use 6 decimal precision
-    val depositAmount = BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)) // 1000 USDC
+        val depositAmount: BigInteger = BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)) // 1000 USDC
     onChainClient.deposit(mainKeyPair, depositAmount, 1000L, DecimalUtil.toSui(BigDecimal("0.1")))
     
     // 6. Get market info
-    val perpId = httpClient.getMarketPerpId("BTC-PERP")
+        val perpId: String = httpClient.getMarketPerpId("BTC-PERP")
         
     // 7. Place order
-    val orderRequest = PlaceOrderRequest(
+        val orderRequest: PlaceOrderRequest = PlaceOrderRequest(
         symbol = "BTC-PERP",
         market = perpId,
         price = DecimalUtil.toBaseUnit(BigDecimal("50000")),
@@ -113,12 +113,12 @@ fun main() {
     )
     
     // Sign with sub account
-    val salt = String(OrderUtil.getSalt())
+        val salt: String = String(OrderUtil.getSalt())
     orderRequest.salt = salt
-    val signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
+        val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
     orderRequest.orderSignature = signature
     
-    val orderId = httpClient.placeOrder(orderRequest)
+        val orderId: String = httpClient.placeOrder(orderRequest)
     println("Order placed: " + orderId)
 }
 ```
@@ -145,14 +145,14 @@ fun main() {
     // There are three methods to construct a private key pair: `suiPrivKey`, mnemonic phrase, and hexadecimal private key.
 //        SuiKeyPair mainKeyPair = SuiKeyPair.decodeSuiPrivateKey("suiprivKeyxxxx")
 //        SuiKeyPair mainKeyPair = Ed25519KeyPair.deriveKeypair("mnemonics", null)
-    val mainKeyPair = Ed25519KeyPair.decodeHex("main_private_key_hex")
-    val subKeyPair = Ed25519KeyPair.decodeHex("sub_private_key_hex")
-    
-    // 2. Create unified HTTP client
-    val httpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
-    
-    // 3. Create on-chain client for blockchain operations
-    val onChainClient = PerpOnSignClient(PerpNetwork.TESTNET)
+    val mainKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("main_private_key_hex")
+        val subKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("sub_private_key_hex")
+        
+        // 2. Create unified HTTP client
+        val httpClient: PerpHttpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
+        
+        // 3. Create on-chain client for blockchain operations
+        val onChainClient: PerpOnSignClient = PerpOnSignClient(PerpNetwork.TESTNET)
     
     // 4. Set sub account (one-time setup)
     onChainClient.setSubAccount(
@@ -162,14 +162,14 @@ fun main() {
         DecimalUtil.toSui(BigDecimal("0.1"))
     )        
     // 5. Deposit funds - USDC use 6 decimal precision
-    val depositAmount = BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)) // 1000 USDC
+        val depositAmount: BigInteger = BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)) // 1000 USDC
     onChainClient.deposit(mainKeyPair, depositAmount, 1000L, DecimalUtil.toSui(BigDecimal("0.1")))
     
     // 6. Get market info
-    val perpId = httpClient.getMarketPerpId("BTC-PERP")
+        val perpId: String = httpClient.getMarketPerpId("BTC-PERP")
     
     // 7. Place order
-    val orderRequest = PlaceOrderRequest(
+        val orderRequest: PlaceOrderRequest = PlaceOrderRequest(
         symbol = "BTC-PERP",
         market = perpId,
         price = DecimalUtil.toBaseUnit(BigDecimal("50000")),
@@ -183,12 +183,12 @@ fun main() {
     )
     
     // Sign with sub account
-    val salt = String(OrderUtil.getSalt())
+        val salt: String = String(OrderUtil.getSalt())
     orderRequest.salt = salt
-    val signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
+        val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
     orderRequest.orderSignature = signature
     
-    val orderId = httpClient.placeOrder(orderRequest)
+        val orderId: String = httpClient.placeOrder(orderRequest)
     println("Order placed: " + orderId)
 }
 ```
@@ -209,11 +209,11 @@ import io.dipcoin.sui.perp.client.auth.AuthSession
 import io.dipcoin.sui.perp.client.core.PerpAuthorization
 import io.dipcoin.sui.perp.enums.PerpNetwork
 // Create authorization and get auth session
-val perpAuth = PerpAuthorization(PerpNetwork.TESTNET)
-val subAuth = perpAuth.authorize(subKeyPair)
+val perpAuth: PerpAuthorization = PerpAuthorization(PerpNetwork.TESTNET)
+val subAuth: AuthSession = perpAuth.authorize(subKeyPair)
 
 // Initialize trade client with sub account auth
-val tradeClient = PerpTradeClient(PerpNetwork.TESTNET, subAuth)
+val tradeClient: PerpTradeClient = PerpTradeClient(PerpNetwork.TESTNET, subAuth)
 ```
 
 #### Place Order
@@ -228,10 +228,10 @@ import io.dipcoin.sui.perp.util.OrderUtil
 import java.math.BigDecimal
 import java.math.BigInteger
 // Get market perp ID first
-val perpId = marketClient.getMarketPerpId("BTC-PERP")
+val perpId: String = marketClient.getMarketPerpId("BTC-PERP")
 
 // Create order request with 18 decimal precision
-val request = PlaceOrderRequest(
+val request: PlaceOrderRequest = PlaceOrderRequest(
     symbol = "BTC-PERP",
     market = perpId,
     price = DecimalUtil.toBaseUnit(BigDecimal("50000")),      // 50000 USDC
@@ -245,13 +245,13 @@ val request = PlaceOrderRequest(
 )
 
 // Sign order with sub account
-val salt = String(OrderUtil.getSalt())
+        val salt: String = String(OrderUtil.getSalt())
 request.salt = salt
-val signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), subKeyPair)
+val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), subKeyPair)
 request.orderSignature = signature
 
 // Place order
-val orderId = tradeClient.placeOrder(request)
+val orderId: String = tradeClient.placeOrder(request)
 println("Order ID: " + orderId)
 ```
 For the vault version:
@@ -268,10 +268,10 @@ import io.dipcoin.sui.perp.util.OrderUtil
 import java.math.BigDecimal
 import java.math.BigInteger
 // Get market perp ID first
-val perpId = marketClient.getMarketPerpId("BTC-PERP")
+val perpId: String = marketClient.getMarketPerpId("BTC-PERP")
 
 // Create order request with 18 decimal precision
-val request = PlaceOrderRequest(
+val request: PlaceOrderRequest = PlaceOrderRequest(
     symbol = "BTC-PERP",
     market = perpId,
     price = DecimalUtil.toBaseUnit(BigDecimal("50000")),      // 50000 USDC
@@ -285,20 +285,20 @@ val request = PlaceOrderRequest(
 )
 
 // Sign order with sub account
-val salt = String(OrderUtil.getSalt())
+        val salt: String = String(OrderUtil.getSalt())
 request.salt = salt
-val signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), subKeyPair)
+val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), subKeyPair)
 request.orderSignature = signature
 
 // Place order
-val orderId = tradeClient.placeOrder(request)
+val orderId: String = tradeClient.placeOrder(request)
 println("Order ID: " + orderId)
 ```
 
 **Market Order Example:**
 
 ```kotlin
-val marketOrder = PlaceOrderRequest(
+val marketOrder: PlaceOrderRequest = PlaceOrderRequest(
     symbol = "BTC-PERP",
     market = perpId,
     quantity = DecimalUtil.toBaseUnit(BigDecimal("1")),  // 1 BTC
@@ -310,18 +310,18 @@ val marketOrder = PlaceOrderRequest(
     clientId = "market_order_001"
 )
 
-val salt = String(OrderUtil.getSalt())
+        val salt: String = String(OrderUtil.getSalt())
 marketOrder.salt = salt
 marketOrder.orderSignature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(marketOrder), subKeyPair)
 
-val orderId = tradeClient.placeOrder(marketOrder)
+val orderId: String = tradeClient.placeOrder(marketOrder)
 ```
 For the vault version:
 
 > Replace the vault address `0xvault_address` below with the actual vault address that has been created and associated with your order address. The request field to be set is `creator`.
 
 ```kotlin
-val marketOrder = PlaceOrderRequest(
+val marketOrder: PlaceOrderRequest = PlaceOrderRequest(
     symbol = "BTC-PERP",
     market = perpId,
     quantity = DecimalUtil.toBaseUnit(BigDecimal("1")),  // 1 BTC
@@ -333,11 +333,11 @@ val marketOrder = PlaceOrderRequest(
     clientId = "market_order_001"
 )
 
-val salt = String(OrderUtil.getSalt())
+        val salt: String = String(OrderUtil.getSalt())
 marketOrder.salt = salt
 marketOrder.orderSignature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(marketOrder), subKeyPair)
 
-val orderId = tradeClient.placeOrder(marketOrder)
+val orderId: String = tradeClient.placeOrder(marketOrder)
 ```
 
 #### Cancel Order
@@ -345,8 +345,8 @@ val orderId = tradeClient.placeOrder(marketOrder)
 ```kotlin
 import io.dipcoin.sui.perp.model.request.CancelOrderRequest
 import io.dipcoin.sui.perp.model.response.CancelOrderResponse
-val request = CancelOrderRequest(orderId = "order_id_to_cancel", symbol = "BTC-PERP")
-val response = tradeClient.cancelOrder(request)
+val request: CancelOrderRequest = CancelOrderRequest(orderId = "order_id_to_cancel", symbol = "BTC-PERP")
+val response: CancelOrderResponse = tradeClient.cancelOrder(request)
 println("Cancelled order: " + response.orderId)
 ```
 For the vault version:
@@ -357,8 +357,8 @@ For the vault version:
 import io.dipcoin.sui.perp.model.request.CancelOrderRequest
 import io.dipcoin.sui.perp.model.response.CancelOrderResponse
 
-val request = CancelOrderRequest(parentAddress = "0xvault_address", orderId = "order_id_to_cancel", symbol = "BTC-PERP")
-val response = tradeClient.cancelOrder(request)
+val request: CancelOrderRequest = CancelOrderRequest(parentAddress = "0xvault_address", orderId = "order_id_to_cancel", symbol = "BTC-PERP")
+val response: CancelOrderResponse = tradeClient.cancelOrder(request)
 println("Cancelled order: " + response.orderId)
 ```
 
@@ -376,18 +376,18 @@ import io.dipcoin.sui.perp.client.auth.AuthSession
 import io.dipcoin.sui.perp.client.core.PerpAuthorization
 
 // Create authorization with main account
-val perpAuth = PerpAuthorization(PerpNetwork.TESTNET)
-val mainAuth = perpAuth.authorize(mainKeyPair)
+val perpAuth: PerpAuthorization = PerpAuthorization(PerpNetwork.TESTNET)
+val mainAuth: AuthSession = perpAuth.authorize(mainKeyPair)
 
 // Initialize user client
-val userClient = PerpUserClient(PerpNetwork.TESTNET, mainAuth)
+val userClient: PerpUserClient = PerpUserClient(PerpNetwork.TESTNET, mainAuth)
 ```
 
 #### Get Account Information
 
 ```kotlin
 import io.dipcoin.sui.perp.model.response.AccountResponse
-val account = userClient.account(null)
+val account: AccountResponse = userClient.account(null)
 println("Wallet balance: " + account.walletBalance)
 println("Free collateral: " + account.freeCollateral)
 println("Total position margin: " + account.totalPositionMargin)
@@ -402,8 +402,8 @@ For the vault version:
 ```kotlin
 import io.dipcoin.sui.perp.model.response.AccountResponse
 // Query vault address.
-val request = AccountRequest(parentAddress = "0xvault_address")
-val account = userClient.account(request)
+val request: AccountRequest = AccountRequest(parentAddress = "0xvault_address")
+val account: AccountResponse = userClient.account(request)
 println("Wallet balance: " + account.walletBalance)
 println("Free collateral: " + account.freeCollateral)
 println("Total position margin: " + account.totalPositionMargin)
@@ -416,8 +416,8 @@ println("Account value: " + account.accountValue)
 ```kotlin
 import io.dipcoin.sui.perp.model.response.PositionResponse
 import java.util.List
-val positions = userClient.positions(null)
-for (PositionResponse position : positions) {
+val positions: List<PositionResponse> = userClient.positions(null)
+for (position in positions) {
     println("Symbol: " + position.symbol)    
     println("Side: " + position.side)    
     println("Quantity: " + position.quantity)    
@@ -435,10 +435,10 @@ For the vault version:
 import io.dipcoin.sui.perp.model.response.PositionResponse
 import java.util.List
 // Query vault address.
-val request = PositionRequest(symbol = "ETH-PERP", parentAddress = "0xvault_address")
+val request: PositionRequest = PositionRequest(symbol = "ETH-PERP", parentAddress = "0xvault_address")
 
-val positions = userClient.positions(request)
-for (PositionResponse position : positions) {
+val positions: List<PositionResponse> = userClient.positions(request)
+for (position in positions) {
     println("Symbol: " + position.symbol)    
     println("Side: " + position.side)    
     println("Quantity: " + position.quantity)    
@@ -454,9 +454,9 @@ for (PositionResponse position : positions) {
 import io.dipcoin.sui.perp.model.PageResponse
 import io.dipcoin.sui.perp.model.request.OrdersRequest
 import io.dipcoin.sui.perp.model.response.OrdersResponse
-val request = OrdersRequest(symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
+val request: OrdersRequest = OrdersRequest(symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
 
-val orders = userClient.orders(request)
+val orders: PageResponse<OrdersResponse> = userClient.orders(request)
 println("Total orders: " + orders.total)
 ```
 
@@ -469,9 +469,9 @@ import io.dipcoin.sui.perp.model.PageResponse
 import io.dipcoin.sui.perp.model.request.OrdersRequest
 import io.dipcoin.sui.perp.model.response.OrdersResponse
 // Query vault address.
-val request = OrdersRequest(symbol = "BTC-PERP", parentAddress = "0xvault_address", pageNum = 1, pageSize = 20)
+val request: OrdersRequest = OrdersRequest(symbol = "BTC-PERP", parentAddress = "0xvault_address", pageNum = 1, pageSize = 20)
 
-val orders = userClient.orders(request)
+val orders: PageResponse<OrdersResponse> = userClient.orders(request)
 println("Total orders: " + orders.total)
 ```
 
@@ -480,9 +480,9 @@ println("Total orders: " + orders.total)
 ```kotlin
 import io.dipcoin.sui.perp.model.request.HistoryOrdersRequest
 import io.dipcoin.sui.perp.model.response.HistoryOrdersResponse
-val request = HistoryOrdersRequest(symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
+val request: HistoryOrdersRequest = HistoryOrdersRequest(symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
 
-val history = userClient.historyOrders(request)
+val history: PageResponse<HistoryOrdersResponse> = userClient.historyOrders(request)
 ```
 
 For the vault version:
@@ -493,9 +493,9 @@ For the vault version:
 import io.dipcoin.sui.perp.model.request.HistoryOrdersRequest
 import io.dipcoin.sui.perp.model.response.HistoryOrdersResponse
 // Query vault address.
-val request = HistoryOrdersRequest(parentAddress = "0xvault_address", symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
+val request: HistoryOrdersRequest = HistoryOrdersRequest(parentAddress = "0xvault_address", symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
 
-val history = userClient.historyOrders(request)
+val history: PageResponse<HistoryOrdersResponse> = userClient.historyOrders(request)
 ```
 
 #### Get Funding Settlements
@@ -504,9 +504,9 @@ val history = userClient.historyOrders(request)
 import io.dipcoin.sui.perp.model.request.FundingPageRequest
 import io.dipcoin.sui.perp.model.request.BalancePageRequest
 import io.dipcoin.sui.perp.model.response.FundingSettlementsResponse
-val request = FundingPageRequest(symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
+val request: FundingPageRequest = FundingPageRequest(symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
 
-val settlements = userClient.fundingSettlements(request)
+val settlements: PageResponse<FundingSettlementsResponse> = userClient.fundingSettlements(request)
 ```
 
 For the vault version:
@@ -518,16 +518,16 @@ import io.dipcoin.sui.perp.model.request.FundingPageRequest
 import io.dipcoin.sui.perp.model.request.BalancePageRequest
 import io.dipcoin.sui.perp.model.response.FundingSettlementsResponse
 // Query vault address.
-val request = FundingPageRequest(parentAddress = "0xvault_address", symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
-val settlements = userClient.fundingSettlements(request)
+val request: FundingPageRequest = FundingPageRequest(parentAddress = "0xvault_address", symbol = "BTC-PERP", pageNum = 1, pageSize = 20)
+val settlements: PageResponse<FundingSettlementsResponse> = userClient.fundingSettlements(request)
 ```
 
 #### Get Balance Changes
 
 ```kotlin
 import io.dipcoin.sui.perp.model.response.BalanceChangesResponse
-val request = BalancePageRequest(pageNum = 1, pageSize = 20)
-val changes = userClient.balanceChanges(request)
+val request: BalancePageRequest = BalancePageRequest(pageNum = 1, pageSize = 20)
+val changes: PageResponse<BalanceChangesResponse> = userClient.balanceChanges(request)
 ```
 
 For the vault version:
@@ -537,8 +537,8 @@ For the vault version:
 ```kotlin
 import io.dipcoin.sui.perp.model.response.BalanceChangesResponse
 // Query vault address.
-val request = BalancePageRequest(parentAddress = "0xvault_address", pageNum = 1, pageSize = 20)
-val changes = userClient.balanceChanges(request)
+val request: BalancePageRequest = BalancePageRequest(parentAddress = "0xvault_address", pageNum = 1, pageSize = 20)
+val changes: PageResponse<BalanceChangesResponse> = userClient.balanceChanges(request)
 ```
 
 ---
@@ -553,7 +553,7 @@ val changes = userClient.balanceChanges(request)
 import io.dipcoin.sui.perp.client.PerpMarketClient
 import io.dipcoin.sui.perp.enums.PerpNetwork
 // No authentication required for market data
-PerpMarketClient marketClient = PerpMarketClient(PerpNetwork.TESTNET)
+val marketClient: PerpMarketClient = PerpMarketClient(PerpNetwork.TESTNET)
 ```
 
 #### Get Trading Pairs
@@ -561,8 +561,8 @@ PerpMarketClient marketClient = PerpMarketClient(PerpNetwork.TESTNET)
 ```kotlin
 import io.dipcoin.sui.perp.model.response.TradingPairResponse
 import java.util.List
-val pairs = marketClient.tradingPair()
-for (TradingPairResponse pair : pairs) {
+val pairs: List<TradingPairResponse> = marketClient.tradingPair()
+for (pair in pairs) {
     println("Symbol: " + pair.symbol)    
     println("Perp ID: " + pair.perpId)    
     println("Max leverage: " + pair.maxLeverage)    
@@ -577,7 +577,7 @@ for (TradingPairResponse pair : pairs) {
 
 ```kotlin
 // Required when placing orders
-val perpId = marketClient.getMarketPerpId("BTC-PERP")
+val perpId: String = marketClient.getMarketPerpId("BTC-PERP")
 println("Market Perp ID: " + perpId)
 ```
 
@@ -587,7 +587,7 @@ println("Market Perp ID: " + perpId)
 
 ```kotlin
 // Used for oracle price updates in on-chain operations
-val feedId = marketClient.getPythFeedId("BTC-PERP")
+val feedId: String = marketClient.getPythFeedId("BTC-PERP")
 println("Pyth Feed ID: " + feedId)
 ```
 
@@ -596,8 +596,8 @@ println("Pyth Feed ID: " + feedId)
 ```kotlin
 import io.dipcoin.sui.perp.model.request.SymbolRequest
 import io.dipcoin.sui.perp.model.response.TickerResponse
-SymbolRequest request = SymbolRequest(symbol = "BTC-PERP")
-val ticker = marketClient.ticker(request)
+val request: SymbolRequest = SymbolRequest(symbol = "BTC-PERP")
+val ticker: TickerResponse = marketClient.ticker(request)
 println("Last price: " + ticker.lastPrice)
 println("24h high: " + ticker.high24h)
 println("24h low: " + ticker.low24h)
@@ -609,8 +609,8 @@ println("Price change 24h: " + ticker.priceChange24h)
 
 ```kotlin
 import io.dipcoin.sui.perp.model.response.OrderBookResponse
-SymbolRequest request = SymbolRequest(symbol = "BTC-PERP")
-OrderBookResponse orderBook = marketClient.orderBook(request)
+val request: SymbolRequest = SymbolRequest(symbol = "BTC-PERP")
+val orderBook: OrderBookResponse = marketClient.orderBook(request)
 println("Bids (sorted descending):")
 orderBook.bids.forEach(bid -> 
     println("Price: " + bid.price + ", Qty: " + bid.quantity)
@@ -625,8 +625,8 @@ orderBook.asks.forEach(ask ->
 
 ```kotlin
 import java.math.BigInteger
-val request = SymbolRequest(symbol = "BTC-PERP")
-val oraclePrice = marketClient.oracle(request)
+val request: SymbolRequest = SymbolRequest(symbol = "BTC-PERP")
+val oraclePrice: BigInteger = marketClient.oracle(request)
 println("Oracle price: " + oraclePrice)
 ```
 
@@ -642,17 +642,17 @@ println("Oracle price: " + oraclePrice)
 import io.dipcoin.sui.perp.client.PerpHttpClient
 import io.dipcoin.sui.crypto.SuiKeyPair
 import io.dipcoin.sui.perp.enums.PerpNetwork
-val mainKeyPair = Ed25519KeyPair.decodeHex("main_private_key")
-val subKeyPair = Ed25519KeyPair.decodeHex("sub_private_key")
+val mainKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("main_private_key")
+val subKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("sub_private_key")
 
 // Automatically authorizes both accounts on initialization
-val client = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
+val client: PerpHttpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
 
 // Access account information
-val mainAddress = client.mainAddress
-val subAddress = client.subAddress
-SuiKeyPair mainAccount = client.mainAccount
-SuiKeyPair subAccount = client.subAccount
+val mainAddress: String = client.mainAddress
+val subAddress: String = client.subAddress
+val mainAccount: SuiKeyPair<*> = client.mainAccount
+val subAccount: SuiKeyPair<*> = client.subAccount
 ```
 
 #### Features
@@ -666,41 +666,41 @@ SuiKeyPair subAccount = client.subAccount
 **Trading Operations** (uses PerpTradeClient internally):
 ```kotlin
 // Place order
-String orderId = client.placeOrder(orderRequest)
+val orderId: String = client.placeOrder(orderRequest)
 // Cancel order
-CancelOrderResponse response = client.cancelOrder(cancelRequest)
+val response: CancelOrderResponse = client.cancelOrder(cancelRequest)
 ```
 
 **User Data Operations** (uses PerpUserClient internally):
 ```kotlin
 // Get account info
-AccountResponse account = client.account()
+val account: AccountResponse = client.account(null)
 // Get positions
-List<PositionResponse> positions = client.positions()
+val positions: List<PositionResponse> = client.positions(null)
 // Get orders
-PageResponse<OrdersResponse> orders = client.orders(ordersRequest)
+val orders: PageResponse<OrdersResponse> = client.orders(ordersRequest)
 // Get history
-PageResponse<HistoryOrdersResponse> history = client.historyOrders(historyRequest)
+val history: PageResponse<HistoryOrdersResponse> = client.historyOrders(historyRequest)
 // Get funding settlements
-PageResponse<FundingSettlementsResponse> settlements = client.fundingSettlements(pageRequest)
+val settlements: PageResponse<FundingSettlementsResponse> = client.fundingSettlements(pageRequest)
 // Get balance changes
-PageResponse<BalanceChangesResponse> changes = client.balanceChanges(pageRequest)
+val changes: PageResponse<BalanceChangesResponse> = client.balanceChanges(pageRequest)
 ```
 
 **Market Data Operations** (uses PerpMarketClient internally):
 ```kotlin
 // Get trading pairs
-List<TradingPairResponse> pairs = client.tradingPair()
+val pairs: List<TradingPairResponse> = client.tradingPair()
 // Get market perp ID
-String perpId = client.getMarketPerpId("BTC-PERP")
+val perpId: String = client.getMarketPerpId("BTC-PERP")
 // Get Pyth feed ID
-String feedId = client.getPythFeedId("BTC-PERP")
+val feedId: String = client.getPythFeedId("BTC-PERP")
 // Get ticker
-TickerResponse ticker = client.ticker(symbolRequest)
+val ticker: TickerResponse = client.ticker(symbolRequest)
 // Get order book
-OrderBookResponse orderBook = client.orderBook(symbolRequest)
+val orderBook: OrderBookResponse = client.orderBook(symbolRequest)
 // Get oracle price
-BigInteger oraclePrice = client.oracle(symbolRequest)
+val oraclePrice: BigInteger = client.oracle(symbolRequest)
 ```
 
 ---
@@ -719,12 +719,13 @@ import io.dipcoin.sui.perp.enums.PerpNetwork
 import io.dipcoin.sui.protocol.SuiClient
 import io.dipcoin.sui.protocol.http.HttpService
 // Basic initialization
-PerpOnSignClient onChainClient = PerpOnSignClient(PerpNetwork.TESTNET)
+val onChainClient: PerpOnSignClient = PerpOnSignClient(PerpNetwork.TESTNET)
 // With custom SuiClient
-SuiClient suiClient = SuiClient.build(new HttpService("https://fullnode.testnet.sui.io:443"))
-PerpOnSignClient onChainClient = PerpOnSignClient(suiClient, PerpNetwork.TESTNET)
+val suiClient: SuiClient = SuiClient.build(HttpService("https://fullnode.testnet.sui.io:443"))
+val onChainClient: PerpOnSignClient = PerpOnSignClient(suiClient, PerpNetwork.TESTNET)
 // With custom market client
-PerpMarketClient marketClient = PerpMarketClient(PerpNetwork.TESTNET)PerpOnSignClient onChainClient = PerpOnSignClient(suiClient, PerpNetwork.TESTNET, marketClient)
+val marketClient: PerpMarketClient = PerpMarketClient(PerpNetwork.TESTNET)
+val onChainClient: PerpOnSignClient = PerpOnSignClient(suiClient, PerpNetwork.TESTNET, marketClient)
 ```
 
 #### Set Sub Account
@@ -735,11 +736,11 @@ Bind sub account to main account on-chain (one-time setup required before tradin
 import io.dipcoin.sui.model.transaction.SuiTransactionBlockResponse
 import io.dipcoin.sui.perp.util.DecimalUtil
 import java.math.BigDecimal
-val subAddress = subKeyPair.address()
-val gasPrice = 1000L
-val gasBudget = DecimalUtil.toSui(BigDecimal("0.1")) // 0.1 SUI
+val subAddress: String = subKeyPair.address()
+val gasPrice: Long = 1000L
+val gasBudget: BigDecimal = DecimalUtil.toSui(BigDecimal("0.1")) // 0.1 SUI
 
-val response = onChainClient.setSubAccount(
+val response: SuiTransactionBlockResponse = onChainClient.setSubAccount(
     mainKeyPair,
     subAddress,
     gasPrice,
@@ -756,10 +757,10 @@ Deposit USDC into trading account. All numerical values use 18 decimal precision
 ```kotlin
 import java.math.BigDecimal
 // Deposit 1000 USDC
-val depositAmount = BigDecimal("1000").multiply(BigInteger.TEN.pow(6))
-val gasPrice = 1000L
-val gasBudget = DecimalUtil.toSui(BigDecimal("0.1"))
-val response = onChainClient.deposit(
+val depositAmount: BigInteger = BigDecimal("1000").multiply(BigInteger.TEN.pow(6))
+val gasPrice: Long = 1000L
+val gasBudget: BigDecimal = DecimalUtil.toSui(BigDecimal("0.1"))
+val response: SuiTransactionBlockResponse = onChainClient.deposit(
     mainKeyPair,
     depositAmount,
     gasPrice,
@@ -774,10 +775,10 @@ Withdraw USDC from trading account.
 
 ```kotlin
 // Withdraw 500 USDC
-val withdrawAmount = BigDecimal("500").multiply(BigInteger.TEN.pow(6))
-val gasPrice = 1000L
-val gasBudget = DecimalUtil.toSui(BigDecimal("0.1"))
-val response = onChainClient.withdraw(
+val withdrawAmount: BigInteger = BigDecimal("500").multiply(BigInteger.TEN.pow(6))
+val gasPrice: Long = 1000L
+val gasBudget: BigDecimal = DecimalUtil.toSui(BigDecimal("0.1"))
+val response: SuiTransactionBlockResponse = onChainClient.withdraw(
     mainKeyPair,
     withdrawAmount,
     gasPrice,
@@ -791,9 +792,12 @@ println("Withdraw transaction: " + response.digest)
 Add margin to an existing position.
 
 ```kotlin
-String symbol = "BTC-PERP"String subAddress = subKeyPair.address()BigDecimal marginAmount = BigDecimal("100").multiply(BigInteger.TEN.pow(6)) // 100 USDC
-long gasPrice = 1000LBigDecimal gasBudget = DecimalUtil.toSui(BigDecimal("0.1"))
-val response = onChainClient.addMargin(
+val symbol: String = "BTC-PERP"
+val subAddress: String = subKeyPair.address()
+val marginAmount: BigDecimal = BigDecimal("100").multiply(BigInteger.TEN.pow(6)) // 100 USDC
+val gasPrice: Long = 1000L
+val gasBudget: BigDecimal = DecimalUtil.toSui(BigDecimal("0.1"))
+val response: SuiTransactionBlockResponse = onChainClient.addMargin(
     mainKeyPair,
     subAddress,
     symbol,
@@ -844,17 +848,18 @@ import io.dipcoin.sui.perp.client.PerpMarketClient
 import io.dipcoin.sui.perp.client.chain.WalletService
 import io.dipcoin.sui.perp.enums.PerpNetwork
 // Implement wallet service
-WalletService walletService = new MyWalletService()
+val walletService: WalletService = MyWalletService()
 // Initialize market client
-PerpMarketClient marketClient = PerpMarketClient(PerpNetwork.TESTNET)
+val marketClient: PerpMarketClient = PerpMarketClient(PerpNetwork.TESTNET)
 // Create off-sign client
-PerpOffSignClient offSignClient = PerpOffSignClient(
+val offSignClient: PerpOffSignClient = PerpOffSignClient(
     PerpNetwork.TESTNET,
     marketClient,
     walletService
 )
 // With custom SuiClient
-SuiClient suiClient = SuiClient.build(new HttpService("https://fullnode.testnet.sui.io:443"))PerpOffSignClient offSignClient = PerpOffSignClient(
+val suiClient: SuiClient = SuiClient.build(HttpService("https://fullnode.testnet.sui.io:443"))
+val offSignClient: PerpOffSignClient = PerpOffSignClient(
     suiClient,
     PerpNetwork.TESTNET,
     marketClient,
@@ -865,12 +870,12 @@ SuiClient suiClient = SuiClient.build(new HttpService("https://fullnode.testnet.
 #### Set Sub Account
 
 ```kotlin
-val sender = "0x..." // Main account address
-val subAddress = "0x..." // Sub account address
-val gasPrice = 1000L
-val gasBudget = BigDecimal("0.1")
+val sender: String = "0x..." // Main account address
+val subAddress: String = "0x..." // Sub account address
+val gasPrice: Long = 1000L
+val gasBudget: BigDecimal = BigDecimal("0.1")
 
-val response = offSignClient.setSubAccount(
+val response: SuiTransactionBlockResponse = offSignClient.setSubAccount(
     sender,
     subAddress,
     gasPrice,
@@ -881,9 +886,9 @@ val response = offSignClient.setSubAccount(
 #### Deposit
 
 ```kotlin
-String sender = "0x..." // Main account address
-BigDecimal depositAmount = BigDecimal("1000")
-val response = offSignClient.deposit(
+val sender: String = "0x..." // Main account address
+val depositAmount: BigDecimal = BigDecimal("1000")
+val response: SuiTransactionBlockResponse = offSignClient.deposit(
     sender,
     DecimalUtil.toBaseUnit(depositAmount),
     gasPrice,
@@ -894,10 +899,10 @@ val response = offSignClient.deposit(
 #### Withdraw
 
 ```kotlin
-val sender = "0x..." // Main account address
-val withdrawAmount = BigDecimal("500")
+val sender: String = "0x..." // Main account address
+val withdrawAmount: BigDecimal = BigDecimal("500")
 
-val response = offSignClient.withdraw(
+val response: SuiTransactionBlockResponse = offSignClient.withdraw(
     sender,
     DecimalUtil.toBaseUnit(withdrawAmount),
     gasPrice,
@@ -908,10 +913,11 @@ val response = offSignClient.withdraw(
 #### Add Margin
 
 ```kotlin
-val sender = "0x..." // Main account address
-val subAddress = "0x..." // Sub account address
-String symbol = "BTC-PERP"BigDecimal marginAmount = BigDecimal("100")
-val response = offSignClient.addMargin(
+val sender: String = "0x..." // Main account address
+val subAddress: String = "0x..." // Sub account address
+val symbol: String = "BTC-PERP"
+val marginAmount: BigDecimal = BigDecimal("100")
+val response: SuiTransactionBlockResponse = offSignClient.addMargin(
     sender,
     subAddress,
     symbol,
@@ -924,10 +930,11 @@ val response = offSignClient.addMargin(
 #### Remove Margin
 
 ```kotlin
-val sender = "0x..." // Main account address
-val subAddress = "0x..." // Sub account address
-String symbol = "BTC-PERP"BigDecimal marginAmount = BigDecimal("100")
-val response = offSignClient.removeMargin(
+val sender: String = "0x..." // Main account address
+val subAddress: String = "0x..." // Sub account address
+val symbol: String = "BTC-PERP"
+val marginAmount: BigDecimal = BigDecimal("100")
+val response: SuiTransactionBlockResponse = offSignClient.removeMargin(
     sender,
     subAddress,
     symbol,
@@ -1070,40 +1077,42 @@ import io.dipcoin.sui.perp.util.DecimalUtil
 import java.math.BigDecimal
 import java.math.BigInteger
 // From String
-BigInteger amount1 = DecimalUtil.toBaseUnit("1000.5")
+val amount1: BigInteger = DecimalUtil.toBaseUnit("1000.5")
 // From BigDecimal
-BigDecimal value = BigDecimal("1000.5")BigInteger amount2 = DecimalUtil.toBaseUnit(value)
+val value: BigDecimal = BigDecimal("1000.5")
+val amount2: BigInteger = DecimalUtil.toBaseUnit(value)
 // From BigInteger (multiplies by 10^18)
-BigInteger value3 = BigInteger("1000")BigInteger amount3 = DecimalUtil.toBaseUnit(value3)
+val value3: BigInteger = BigInteger("1000")
+val amount3: BigInteger = DecimalUtil.toBaseUnit(value3)
 // Get base unit constants
-BigInteger baseUnit = DecimalUtil.getBaseUintInteger()  // 10^18
-BigDecimal baseUnitDecimal = DecimalUtil.getBaseUintDecimal()  // 10^18
-BigInteger halfBaseUnit = DecimalUtil.getHalfBaseUint()  // 0.5 * 10^18
+val baseUnit: BigInteger = DecimalUtil.getBaseUintInteger()  // 10^18
+val baseUnitDecimal: BigDecimal = DecimalUtil.getBaseUintDecimal()  // 10^18
+val halfBaseUnit: BigInteger = DecimalUtil.getHalfBaseUint()  // 0.5 * 10^18
 ```
 
 #### Convert from Base Unit
 
 ```kotlin
 // Convert 18 decimal base unit to human-readable value
-BigInteger baseUnitValue = BigInteger("1500000000000000000000") // 1500 * 10^18
-BigDecimal readableValue = DecimalUtil.fromBaseUnit(baseUnitValue)  // 1500.000000000000000000
+val baseUnitValue: BigInteger = BigInteger("1500000000000000000000") // 1500 * 10^18
+val readableValue: BigDecimal = DecimalUtil.fromBaseUnit(baseUnitValue)  // 1500.000000000000000000
 ```
 
 #### Arithmetic Operations
 
 ```kotlin
 // Base multiplication (value * baseValue / 10^18)
-BigInteger result1 = DecimalUtil.baseMul(value1, value2)
+val result1: BigInteger = DecimalUtil.baseMul(value1, value2)
 // Base division (value * 10^18 / baseValue)
-BigInteger result2 = DecimalUtil.baseDiv(value1, value2)
+val result2: BigInteger = DecimalUtil.baseDiv(value1, value2)
 // Ceiling (ceil(a/m) * m)
-BigInteger result3 = DecimalUtil.ceil(a, m)
+val result3: BigInteger = DecimalUtil.ceil(a, m)
 // Floor (floor(a/m) * m)
-BigInteger result4 = DecimalUtil.floor(a, m)
+val result4: BigInteger = DecimalUtil.floor(a, m)
 // Minimum
-BigInteger result5 = DecimalUtil.min(a, b)
+val result5: BigInteger = DecimalUtil.min(a, b)
 // Safe subtraction (returns a - b if a > b, else 0)
-BigInteger result6 = DecimalUtil.sub(a, b)
+val result6: BigInteger = DecimalUtil.sub(a, b)
 ```
 
 ### OrderUtil
@@ -1115,14 +1124,14 @@ Utility class for order operations and cryptographic signing.
 ```kotlin
 import io.dipcoin.sui.perp.util.OrderUtil
 
-val salt = OrderUtil.getSalt()
-val saltString = String(salt)
+val salt: ByteArray = OrderUtil.getSalt()
+val saltString: String = String(salt)
 ```
 
 #### Serialize Order
 
 ```kotlin
-val request = PlaceOrderRequest(
+val request: PlaceOrderRequest = PlaceOrderRequest(
     symbol = "BTC-PERP",
     market = perpId,
     price = DecimalUtil.toBaseUnit(BigDecimal("50000")),
@@ -1134,21 +1143,21 @@ val request = PlaceOrderRequest(
     creator = mainAddress,
     salt = saltString
 )
-val serializedOrder = OrderUtil.getSerializedOrder(request)
+val serializedOrder: String = OrderUtil.getSerializedOrder(request)
 ```
 
 #### Sign Order
 
 ```kotlin
-val signature = OrderUtil.getSignature(serializedOrder, subKeyPair)
+val signature: String = OrderUtil.getSignature(serializedOrder, subKeyPair)
 request.orderSignature = signature
 ```
 
 #### Sign Message
 
 ```kotlin
-val message = "Your message"
-val signature = OrderUtil.getSignature(message, keyPair)
+val message: String = "Your message"
+val signature: String = OrderUtil.getSignature(message, keyPair)
 ```
 
 ---
@@ -1171,11 +1180,11 @@ import java.math.BigInteger
 import java.util.List
 fun main() {
     // Initialize
-    val mainKeyPair = Ed25519KeyPair.decodeHex("main_key")
-    val subKeyPair = Ed25519KeyPair.decodeHex("sub_key")
+    val mainKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("main_key")
+    val subKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("sub_key")
     
-    val httpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
-    val onChainClient = PerpOnSignClient(PerpNetwork.TESTNET)
+    val httpClient: PerpHttpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
+    val onChainClient: PerpOnSignClient = PerpOnSignClient(PerpNetwork.TESTNET)
         
     // Setup (one-time)
     onChainClient.setSubAccount(
@@ -1194,15 +1203,15 @@ fun main() {
     )
     
     // Check balance
-    val account = httpClient.account(null)
-    val freeCollateral = DecimalUtil.fromBaseUnit(BigInteger(account.freeCollateral))
+    val account: AccountResponse = httpClient.account(null)
+    val freeCollateral: BigDecimal = DecimalUtil.fromBaseUnit(BigInteger(account.freeCollateral))
     println("Free collateral: " + freeCollateral)
     
     // Get market info
-    val perpId = httpClient.getMarketPerpId("BTC-PERP")
+        val perpId: String = httpClient.getMarketPerpId("BTC-PERP")
     
     // Place buy order
-    val buyOrder = PlaceOrderRequest(
+    val buyOrder: PlaceOrderRequest = PlaceOrderRequest(
         symbol = "BTC-PERP",
         market = perpId,
         price = DecimalUtil.toBaseUnit(BigDecimal("45000")),
@@ -1214,24 +1223,24 @@ fun main() {
         creator = mainKeyPair.address(),
         clientId = "buy_001"
     )
-    val salt = String(OrderUtil.getSalt())
+        val salt: String = String(OrderUtil.getSalt())
     buyOrder.salt = salt
-    val signature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(buyOrder), subKeyPair)
+    val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(buyOrder), subKeyPair)
     buyOrder.orderSignature = signature
     
-    val orderId = httpClient.placeOrder(buyOrder)
+    val orderId: String = httpClient.placeOrder(buyOrder)
     println("Buy order placed: " + orderId)
     
     // Monitor positions
-    val positions = httpClient.positions(null)
+    val positions: List<PositionResponse> = httpClient.positions(null)
     positions.forEach { pos ->
-        val pnl = DecimalUtil.fromBaseUnit(BigInteger(pos.unrealizedProfit))
+        val pnl: BigDecimal = DecimalUtil.fromBaseUnit(BigInteger(pos.unrealizedProfit))
         println("Position: " + pos.symbol + " " + pos.side)
         println("P&L: " + pnl)
     }
     
     // Close position with market order
-    val sellOrder = PlaceOrderRequest(
+    val sellOrder: PlaceOrderRequest = PlaceOrderRequest(
         symbol = "BTC-PERP",
         market = perpId,
         quantity = DecimalUtil.toBaseUnit(BigDecimal("2")),
@@ -1242,15 +1251,15 @@ fun main() {
         creator = mainKeyPair.address(),
         clientId = "sell_001"
     )
-    val sellSalt = String(OrderUtil.getSalt())
+    val sellSalt: String = String(OrderUtil.getSalt())
     sellOrder.salt = sellSalt
     sellOrder.orderSignature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(sellOrder), subKeyPair)
     
-    val sellOrderId = httpClient.placeOrder(sellOrder)
+    val sellOrderId: String = httpClient.placeOrder(sellOrder)
     println("Sell order placed: " + sellOrderId)
     
     // Withdraw profits
-    val withdrawAmount = BigDecimal("1000")
+    val withdrawAmount: BigDecimal = BigDecimal("1000")
     onChainClient.withdraw(
         mainKeyPair,
         DecimalUtil.toBaseUnit(withdrawAmount),
@@ -1264,28 +1273,28 @@ fun main() {
 
 ```kotlin
 fun main() {
-    val client = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
-    val perpId = client.getMarketPerpId("BTC-PERP")
+    val client: PerpHttpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
+    val perpId: String = client.getMarketPerpId("BTC-PERP")
     
     // Get current market price
-    val ticker = client.ticker(SymbolRequest(symbol = "BTC-PERP"))
-    val lastPrice = DecimalUtil.fromBaseUnit(BigInteger(ticker.lastPrice))
+    val ticker: TickerResponse = client.ticker(SymbolRequest(symbol = "BTC-PERP"))
+    val lastPrice: BigDecimal = DecimalUtil.fromBaseUnit(BigInteger(ticker.lastPrice))
         
     // Calculate bid/ask prices (0.1% spread)
-    val bidPrice = lastPrice.multiply(BigDecimal("0.9995"))
-    val askPrice = lastPrice.multiply(BigDecimal("1.0005"))
-    val quantity = BigDecimal("1")
+    val bidPrice: BigDecimal = lastPrice.multiply(BigDecimal("0.9995"))
+    val askPrice: BigDecimal = lastPrice.multiply(BigDecimal("1.0005"))
+    val quantity: BigDecimal = BigDecimal("1")
     
     // Place bid order
-    val bidOrder = createOrder(perpId, DecimalUtil.toBaseUnit(bidPrice), DecimalUtil.toBaseUnit(quantity), OrderSide.BUY, mainKeyPair.address())
-    val bidSalt = String(OrderUtil.getSalt())
+    val bidOrder: PlaceOrderRequest = createOrder(perpId, DecimalUtil.toBaseUnit(bidPrice), DecimalUtil.toBaseUnit(quantity), OrderSide.BUY, mainKeyPair.address())
+    val bidSalt: String = String(OrderUtil.getSalt())
     bidOrder.salt = bidSalt
     bidOrder.orderSignature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(bidOrder), subKeyPair)
     client.placeOrder(bidOrder)
     
     // Place ask order
-    val askOrder = createOrder(perpId, DecimalUtil.toBaseUnit(askPrice), DecimalUtil.toBaseUnit(quantity), OrderSide.SELL, mainKeyPair.address())
-    val askSalt = String(OrderUtil.getSalt())
+    val askOrder: PlaceOrderRequest = createOrder(perpId, DecimalUtil.toBaseUnit(askPrice), DecimalUtil.toBaseUnit(quantity), OrderSide.SELL, mainKeyPair.address())
+    val askSalt: String = String(OrderUtil.getSalt())
     askOrder.salt = askSalt
     askOrder.orderSignature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(askOrder), subKeyPair)
     client.placeOrder(askOrder)
@@ -1311,26 +1320,26 @@ fun createOrder(perpId: String, price: BigInteger, quantity: BigInteger, side: O
 ```kotlin
 fun main() {
     // Initialize separate clients for different purposes
-    val network = PerpNetwork.TESTNET
+    val network: PerpNetwork = PerpNetwork.TESTNET
     
     // 1. Market data client (no auth required)
-    val marketClient = PerpMarketClient(network)
-    val pairs = marketClient.tradingPair()
+    val marketClient: PerpMarketClient = PerpMarketClient(network)
+    val pairs: List<TradingPairResponse> = marketClient.tradingPair()
     
     // 2. User data client (main account auth)
-    val perpAuth = PerpAuthorization(network)
-    val mainAuth = perpAuth.authorize(mainKeyPair)
-    val userClient = PerpUserClient(network, mainAuth)
-    val account = userClient.account(null)
+    val perpAuth: PerpAuthorization = PerpAuthorization(network)
+    val mainAuth: AuthSession = perpAuth.authorize(mainKeyPair)
+    val userClient: PerpUserClient = PerpUserClient(network, mainAuth)
+    val account: AccountResponse = userClient.account(null)
     
     // 3. Trade client (sub account auth)
-    val subAuth = perpAuth.authorize(subKeyPair)
-    val tradeClient = PerpTradeClient(network, subAuth)
-    val orderId = tradeClient.placeOrder(orderRequest)
+    val subAuth: AuthSession = perpAuth.authorize(subKeyPair)
+    val tradeClient: PerpTradeClient = PerpTradeClient(network, subAuth)
+    val orderId: String = tradeClient.placeOrder(orderRequest)
     
     // OR use unified client for convenience
-    val unifiedClient = PerpHttpClient(network, mainKeyPair, subKeyPair)
-    val orderId2 = unifiedClient.placeOrder(orderRequest)
+    val unifiedClient: PerpHttpClient = PerpHttpClient(network, mainKeyPair, subKeyPair)
+    val orderId2: String = unifiedClient.placeOrder(orderRequest)
 }
 ```
 
@@ -1353,11 +1362,12 @@ fun main() {
 import io.dipcoin.sui.perp.util.DecimalUtil
 import java.math.BigDecimal
 // Convert human-readable values to base unit (18 decimals)
-BigDecimal userInput = BigDecimal("1000.5")BigInteger baseUnitValue = DecimalUtil.toBaseUnit(userInput)
+val userInput: BigDecimal = BigDecimal("1000.5")
+val baseUnitValue: BigInteger = DecimalUtil.toBaseUnit(userInput)
 // Convert base unit back to human-readable
-BigDecimal displayValue = DecimalUtil.fromBaseUnit(baseUnitValue)
+val displayValue: BigDecimal = DecimalUtil.fromBaseUnit(baseUnitValue)
 // For display purposes, format to appropriate decimal places
-String formatted = displayValue.setScale(2, RoundingMode.DOWN).toPlainString()
+val formatted: String = displayValue.setScale(2, RoundingMode.DOWN).toPlainString()
 ```
 
 ### Performance
@@ -1372,7 +1382,9 @@ String formatted = displayValue.setScale(2, RoundingMode.DOWN).toPlainString()
 
 1. **Check Free Collateral**: Ensure sufficient margin before placing orders
    ```kotlin
-   AccountResponse account = client.account()   BigDecimal freeCollateral = DecimalUtil.fromBaseUnit(BigInteger(account.freeCollateral))   if (freeCollateral.compareTo(requiredMargin) >= 0) {
+   val account: AccountResponse = client.account(null)
+   val freeCollateral: BigDecimal = DecimalUtil.fromBaseUnit(BigInteger(account.freeCollateral))
+   if (freeCollateral.compareTo(requiredMargin) >= 0) {
        // Place order
    }
    ```
@@ -1384,7 +1396,8 @@ String formatted = displayValue.setScale(2, RoundingMode.DOWN).toPlainString()
 
 3. **Monitor Funding**: Track funding rates and settlements
    ```kotlin
-   PageResponse<FundingSettlementsResponse> settlements = client.fundingSettlements(pageRequest)   ```
+   val settlements: PageResponse<FundingSettlementsResponse> = client.fundingSettlements(pageRequest)
+   ```
 
 4. **Use Appropriate Leverage**: Conservative leverage reduces liquidation risk
    ```kotlin
@@ -1401,7 +1414,8 @@ String formatted = displayValue.setScale(2, RoundingMode.DOWN).toPlainString()
 ```kotlin
 import io.dipcoin.sui.perp.exception.*
 try {
-    String orderId = client.placeOrder(request)} catch (e: PerpHttpException) {
+    val orderId: String = client.placeOrder(request)
+} catch (e: PerpHttpException) {
     // HTTP API errors
     eprintln("HTTP error: " + e.message)
 } catch (e: PerpRpcFailedException) {
@@ -1420,12 +1434,13 @@ try {
 
 ```kotlin
 // Get dynamic gas price
-SuiClient suiClient = SuiClient.build(new HttpService(networkConfig.suiRpc()))Long gasPrice = suiClient.getReferenceGasPrice()
+val suiClient: SuiClient = SuiClient.build(HttpService(networkConfig.suiRpc()))
+val gasPrice: Long = suiClient.getReferenceGasPrice()
 // Use appropriate gas budget (in 18 decimals)
-BigDecimal normalGasBudget = BigDecimal("0.1")  // 0.1 SUI
-BigDecimal largeGasBudget = BigDecimal("1.0")   // 1 SUI for complex operations
+val normalGasBudget: BigDecimal = BigDecimal("0.1")  // 0.1 SUI
+val largeGasBudget: BigDecimal = BigDecimal("1.0")   // 1 SUI for complex operations
 
-BigInteger gasBudget = DecimalUtil.toBaseUnit(normalGasBudget)
+val gasBudget: BigInteger = DecimalUtil.toBaseUnit(normalGasBudget)
 ```
 
 ### Module Selection Guide
