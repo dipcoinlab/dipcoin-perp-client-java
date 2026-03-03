@@ -73,16 +73,16 @@ import java.math.BigInteger
 fun main() {
     // 1. Initialize keypairs
     // There are three methods to construct a private key pair: `suiPrivKey`, mnemonic phrase, and hexadecimal private key.
-//        SuiKeyPair mainKeyPair = SuiKeyPair.decodeSuiPrivateKey("suiprivKeyxxxx")
-//        SuiKeyPair mainKeyPair = Ed25519KeyPair.deriveKeypair("mnemonics", null)
+//    SuiKeyPair mainKeyPair = SuiKeyPair.decodeSuiPrivateKey("suiprivKeyxxxx")
+//    SuiKeyPair mainKeyPair = Ed25519KeyPair.deriveKeypair("mnemonics", null)
     val mainKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("main_private_key_hex")
-        val subKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("sub_private_key_hex")
+    val subKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("sub_private_key_hex")
         
-        // 2. Create unified HTTP client
-        val httpClient: PerpHttpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
+    // 2. Create unified HTTP client
+    val httpClient: PerpHttpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
         
-        // 3. Create on-chain client for blockchain operations
-        val onChainClient: PerpOnSignClient = PerpOnSignClient(PerpNetwork.TESTNET)
+    // 3. Create on-chain client for blockchain operations
+    val onChainClient: PerpOnSignClient = PerpOnSignClient(PerpNetwork.TESTNET)
     
     // 4. Set sub account (one-time setup)
     onChainClient.setSubAccount(
@@ -92,14 +92,14 @@ fun main() {
         DecimalUtil.toSui(BigDecimal("0.1"))
     )        
     // 5. Deposit funds - USDC use 6 decimal precision
-        val depositAmount: BigInteger = BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)) // 1000 USDC
+    val depositAmount: BigInteger = BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)) // 1000 USDC
     onChainClient.deposit(mainKeyPair, depositAmount, 1000L, DecimalUtil.toSui(BigDecimal("0.1")))
     
     // 6. Get market info
-        val perpId: String = httpClient.getMarketPerpId("BTC-PERP")
+    val perpId: String = httpClient.getMarketPerpId("BTC-PERP")
         
     // 7. Place order
-        val orderRequest: PlaceOrderRequest = PlaceOrderRequest(
+    val orderRequest: PlaceOrderRequest = PlaceOrderRequest(
         symbol = "BTC-PERP",
         market = perpId,
         price = DecimalUtil.toBaseUnit(BigDecimal("50000")),
@@ -113,12 +113,12 @@ fun main() {
     )
     
     // Sign with sub account
-        val salt: String = String(OrderUtil.getSalt())
+    val salt: String = String(OrderUtil.getSalt())
     orderRequest.salt = salt
-        val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
+    val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
     orderRequest.orderSignature = signature
     
-        val orderId: String = httpClient.placeOrder(orderRequest)
+    val orderId: String = httpClient.placeOrder(orderRequest)
     println("Order placed: " + orderId)
 }
 ```
@@ -143,16 +143,16 @@ import java.math.BigInteger
 fun main() {
     // 1. Initialize keypairs
     // There are three methods to construct a private key pair: `suiPrivKey`, mnemonic phrase, and hexadecimal private key.
-//        SuiKeyPair mainKeyPair = SuiKeyPair.decodeSuiPrivateKey("suiprivKeyxxxx")
-//        SuiKeyPair mainKeyPair = Ed25519KeyPair.deriveKeypair("mnemonics", null)
+//    SuiKeyPair mainKeyPair = SuiKeyPair.decodeSuiPrivateKey("suiprivKeyxxxx")
+//    SuiKeyPair mainKeyPair = Ed25519KeyPair.deriveKeypair("mnemonics", null)
     val mainKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("main_private_key_hex")
-        val subKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("sub_private_key_hex")
+    val subKeyPair: SuiKeyPair<*> = Ed25519KeyPair.decodeHex("sub_private_key_hex")
         
-        // 2. Create unified HTTP client
-        val httpClient: PerpHttpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
+    // 2. Create unified HTTP client
+    val httpClient: PerpHttpClient = PerpHttpClient(PerpNetwork.TESTNET, mainKeyPair, subKeyPair)
         
-        // 3. Create on-chain client for blockchain operations
-        val onChainClient: PerpOnSignClient = PerpOnSignClient(PerpNetwork.TESTNET)
+    // 3. Create on-chain client for blockchain operations
+    val onChainClient: PerpOnSignClient = PerpOnSignClient(PerpNetwork.TESTNET)
     
     // 4. Set sub account (one-time setup)
     onChainClient.setSubAccount(
@@ -162,14 +162,14 @@ fun main() {
         DecimalUtil.toSui(BigDecimal("0.1"))
     )        
     // 5. Deposit funds - USDC use 6 decimal precision
-        val depositAmount: BigInteger = BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)) // 1000 USDC
+    val depositAmount: BigInteger = BigDecimal("1000").multiply(BigDecimal.TEN.pow(6)) // 1000 USDC
     onChainClient.deposit(mainKeyPair, depositAmount, 1000L, DecimalUtil.toSui(BigDecimal("0.1")))
     
     // 6. Get market info
-        val perpId: String = httpClient.getMarketPerpId("BTC-PERP")
+    val perpId: String = httpClient.getMarketPerpId("BTC-PERP")
     
     // 7. Place order
-        val orderRequest: PlaceOrderRequest = PlaceOrderRequest(
+    val orderRequest: PlaceOrderRequest = PlaceOrderRequest(
         symbol = "BTC-PERP",
         market = perpId,
         price = DecimalUtil.toBaseUnit(BigDecimal("50000")),
@@ -183,12 +183,12 @@ fun main() {
     )
     
     // Sign with sub account
-        val salt: String = String(OrderUtil.getSalt())
+    val salt: String = String(OrderUtil.getSalt())
     orderRequest.salt = salt
-        val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
+    val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(orderRequest), subKeyPair)
     orderRequest.orderSignature = signature
     
-        val orderId: String = httpClient.placeOrder(orderRequest)
+    val orderId: String = httpClient.placeOrder(orderRequest)
     println("Order placed: " + orderId)
 }
 ```
@@ -245,7 +245,7 @@ val request: PlaceOrderRequest = PlaceOrderRequest(
 )
 
 // Sign order with sub account
-        val salt: String = String(OrderUtil.getSalt())
+val salt: String = String(OrderUtil.getSalt())
 request.salt = salt
 val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), subKeyPair)
 request.orderSignature = signature
@@ -285,7 +285,7 @@ val request: PlaceOrderRequest = PlaceOrderRequest(
 )
 
 // Sign order with sub account
-        val salt: String = String(OrderUtil.getSalt())
+val salt: String = String(OrderUtil.getSalt())
 request.salt = salt
 val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(request), subKeyPair)
 request.orderSignature = signature
@@ -310,7 +310,7 @@ val marketOrder: PlaceOrderRequest = PlaceOrderRequest(
     clientId = "market_order_001"
 )
 
-        val salt: String = String(OrderUtil.getSalt())
+val salt: String = String(OrderUtil.getSalt())
 marketOrder.salt = salt
 marketOrder.orderSignature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(marketOrder), subKeyPair)
 
@@ -333,7 +333,7 @@ val marketOrder: PlaceOrderRequest = PlaceOrderRequest(
     clientId = "market_order_001"
 )
 
-        val salt: String = String(OrderUtil.getSalt())
+val salt: String = String(OrderUtil.getSalt())
 marketOrder.salt = salt
 marketOrder.orderSignature = OrderUtil.getSignature(OrderUtil.getSerializedOrder(marketOrder), subKeyPair)
 
@@ -1208,7 +1208,7 @@ fun main() {
     println("Free collateral: " + freeCollateral)
     
     // Get market info
-        val perpId: String = httpClient.getMarketPerpId("BTC-PERP")
+    val perpId: String = httpClient.getMarketPerpId("BTC-PERP")
     
     // Place buy order
     val buyOrder: PlaceOrderRequest = PlaceOrderRequest(
@@ -1223,7 +1223,7 @@ fun main() {
         creator = mainKeyPair.address(),
         clientId = "buy_001"
     )
-        val salt: String = String(OrderUtil.getSalt())
+    val salt: String = String(OrderUtil.getSalt())
     buyOrder.salt = salt
     val signature: String = OrderUtil.getSignature(OrderUtil.getSerializedOrder(buyOrder), subKeyPair)
     buyOrder.orderSignature = signature
@@ -1417,16 +1417,16 @@ try {
     val orderId: String = client.placeOrder(request)
 } catch (e: PerpHttpException) {
     // HTTP API errors
-    eprintln("HTTP error: " + e.message)
+    println("HTTP error: " + e.message)
 } catch (e: PerpRpcFailedException) {
     // Blockchain RPC errors
-    eprintln("RPC failed: " + e.message)
+    println("RPC failed: " + e.message)
 } catch (e: PerpOnChainException) {
     // On-chain transaction errors
-    eprintln("On-chain error: " + e.message)
+    println("On-chain error: " + e.message)
 } catch (e: PerpJsonParseException) {
     // JSON parsing errors
-    eprintln("Parse error: " + e.message)
+    println("Parse error: " + e.message)
 }
 ```
 
