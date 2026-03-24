@@ -61,15 +61,14 @@ class PerpVaultClient private constructor(
     private val perpUserClient: PerpUserClient,
     private val perpTradeClient: PerpTradeClient,
     private val offSignClient: PerpOffSignClient,
-    private val mainAuth: AuthSession,
-    private val subAuth: AuthSession,
-    private val _mainAddress: String,
-    private val _subAddress: String,
-    private val _mainAccount: SuiKeyPair<*>?,
-    private val _subAccount: SuiKeyPair<*>?,
+    //parent address
     /** Vault owner address. Auto-injected into account/position/order queries. */
-    val parentAddress: String,
+    private val vaultAddress: String,
+    private val subAuth: AuthSession,
+    private val subAccount: SuiKeyPair<*>
 ) : AbstractHttpClient(), PerpClient {
+
+    private val _subAddress: String = subAccount.address()
 
     /** Gas price for on-chain transactions (in MIST). Adjustable at runtime. */
     var gasPrice: Long = 1000L
@@ -95,7 +94,7 @@ class PerpVaultClient private constructor(
         perpTradeClient.placeOrder(request)
 
     override fun cancelOrder(request: CancelOrderRequest): CancelOrderResponse? {
-        if (request.parentAddress == null) request.parentAddress = parentAddress
+        if (request.parentAddress == null) request.parentAddress = vaultAddress
         return perpTradeClient.cancelOrder(request)
     }
 
@@ -110,40 +109,40 @@ class PerpVaultClient private constructor(
     // ═══════════════════════════════════════════════════════════════════════
 
     override fun positions(request: PositionRequest): List<PositionResponse>? {
-        if (request.parentAddress == null) request.parentAddress = parentAddress
+        if (request.parentAddress == null) request.parentAddress = vaultAddress
         return perpUserClient.positions(request)
     }
 
     /** Convenience: query positions for a symbol under the vault. */
     fun positions(symbol: String? = null): List<PositionResponse>? =
-        positions(PositionRequest(parentAddress = parentAddress, symbol = symbol))
+        positions(PositionRequest(parentAddress = vaultAddress, symbol = symbol))
 
     override fun orders(request: OrdersRequest): PageResponse<OrdersResponse>? {
-        if (request.parentAddress == null) request.parentAddress = parentAddress
+        if (request.parentAddress == null) request.parentAddress = vaultAddress
         return perpUserClient.orders(request)
     }
 
     override fun account(request: AccountRequest): AccountResponse? {
-        if (request.parentAddress == null) request.parentAddress = parentAddress
+        if (request.parentAddress == null) request.parentAddress = vaultAddress
         return perpUserClient.account(request)
     }
 
     /** Convenience: query the vault account. */
     fun account(): AccountResponse? =
-        account(AccountRequest(parentAddress = parentAddress))
+        account(AccountRequest(parentAddress = vaultAddress))
 
     override fun historyOrders(request: HistoryOrdersRequest): PageResponse<HistoryOrdersResponse>? {
-        if (request.parentAddress == null) request.parentAddress = parentAddress
+        if (request.parentAddress == null) request.parentAddress = vaultAddress
         return perpUserClient.historyOrders(request)
     }
 
     override fun fundingSettlements(request: FundingPageRequest): PageResponse<FundingSettlementsResponse>? {
-        if (request.parentAddress == null) request.parentAddress = parentAddress
+        if (request.parentAddress == null) request.parentAddress = vaultAddress
         return perpUserClient.fundingSettlements(request)
     }
 
     override fun balanceChanges(request: BalancePageRequest): PageResponse<BalanceChangesResponse>? {
-        if (request.parentAddress == null) request.parentAddress = parentAddress
+        if (request.parentAddress == null) request.parentAddress = vaultAddress
         return perpUserClient.balanceChanges(request)
     }
 
@@ -174,14 +173,14 @@ class PerpVaultClient private constructor(
     // ═══════════════════════════════════════════════════════════════════════
 
     override fun getMainAccount(): SuiKeyPair<*> =
-        _mainAccount ?: throw UnsupportedOperationException(
+        throw UnsupportedOperationException(
             "Key pair not available (constructed with WalletService)")
 
     override fun getSubAccount(): SuiKeyPair<*> =
-        _subAccount ?: throw UnsupportedOperationException(
-            "Key pair not available (constructed with WalletService)")
+        subAccount
 
-    override fun getMainAddress(): String = _mainAddress
+    override fun getMainAddress(): String = throw UnsupportedOperationException(
+        "Key pair not available (constructed with WalletService)")
     override fun getSubAddress(): String = _subAddress
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -193,32 +192,32 @@ class PerpVaultClient private constructor(
      * Only needs to be called once per sub-account.
      */
     fun vaultSetSubAccount(): SuiTransactionBlockResponse =
-        offSignClient.setSubAccount(parentAddress, _subAddress, gasPrice, gasBudget)
+        offSignClient.setSubAccount(vaultAddress, _subAddress, gasPrice, gasBudget)
 
     /**
      * Deposit [amount] (in token base units) into the vault bank.
      * The sender is [parentAddress].
      */
     fun vaultDeposit(amount: BigInteger): SuiTransactionBlockResponse =
-        offSignClient.deposit(parentAddress, amount, gasPrice, gasBudget)
+        offSignClient.deposit(vaultAddress, amount, gasPrice, gasBudget)
 
     /**
      * Withdraw [amount] from the vault bank back to [parentAddress].
      */
     fun vaultWithdraw(amount: BigInteger): SuiTransactionBlockResponse =
-        offSignClient.withdraw(parentAddress, amount, gasPrice, gasBudget)
+        offSignClient.withdraw(vaultAddress, amount, gasPrice, gasBudget)
 
     /**
      * Add [amount] of margin to the position of [symbol] for the sub-account.
      */
     fun vaultAddMargin(symbol: String, amount: BigInteger): SuiTransactionBlockResponse =
-        offSignClient.addMargin(parentAddress, _subAddress, symbol, amount, gasPrice, gasBudget)
+        offSignClient.addMargin(vaultAddress, _subAddress, symbol, amount, gasPrice, gasBudget)
 
     /**
      * Remove [amount] of margin from the position of [symbol] for the sub-account.
      */
     fun vaultRemoveMargin(symbol: String, amount: BigInteger): SuiTransactionBlockResponse =
-        offSignClient.removeMargin(parentAddress, _subAddress, symbol, amount, gasPrice, gasBudget)
+        offSignClient.removeMargin(vaultAddress, _subAddress, symbol, amount, gasPrice, gasBudget)
 
     // ═══════════════════════════════════════════════════════════════════════
     // Internal — KeyPair-based WalletService adapter
@@ -234,7 +233,6 @@ class PerpVaultClient private constructor(
     // ═══════════════════════════════════════════════════════════════════════
 
     companion object {
-
         /**
          * Create with key pairs — the simplest way, mirrors [PerpHttpClient] constructor.
          *
@@ -244,67 +242,23 @@ class PerpVaultClient private constructor(
         @JvmOverloads
         fun create(
             perpNetwork: PerpNetwork,
-            main: SuiKeyPair<*>,
             sub: SuiKeyPair<*>,
-            parentAddress: String? = null,
+            parentAddress: String,
         ): PerpVaultClient {
             val auth = PerpAuthorization(perpNetwork)
-            val mainAuth = auth.authorize(main)
             val subAuth = auth.authorize(sub)
             val marketClient = PerpMarketClient(perpNetwork)
-            val mainAddr = main.address()
             val subAddr = sub.address()
 
             return PerpVaultClient(
                 perpAuthorization = auth,
                 perpMarketClient = marketClient,
-                perpUserClient = PerpUserClient(perpNetwork, mainAuth),
+                perpUserClient = PerpUserClient(perpNetwork, subAuth),
                 perpTradeClient = PerpTradeClient(perpNetwork, subAuth),
-                offSignClient = PerpOffSignClient(perpNetwork, marketClient, KeyPairWalletService(main)),
-                mainAuth = mainAuth,
+                offSignClient = PerpOffSignClient(perpNetwork, marketClient, KeyPairWalletService(sub)),
+                vaultAddress = parentAddress,
                 subAuth = subAuth,
-                _mainAddress = mainAddr,
-                _subAddress = subAddr,
-                _mainAccount = main,
-                _subAccount = sub,
-                parentAddress = parentAddress ?: mainAddr,
-            )
-        }
-
-        /**
-         * Create with an external [WalletService] and pre-obtained auth tokens.
-         *
-         * Use this when key pairs are not directly available (hardware wallet, MPC, custodian API).
-         *
-         * @param parentAddress vault owner address; defaults to [mainAddress] if null
-         */
-        @JvmStatic
-        @JvmOverloads
-        fun createWithWallet(
-            perpNetwork: PerpNetwork,
-            walletService: WalletService,
-            mainAuth: AuthSession,
-            subAuth: AuthSession,
-            mainAddress: String,
-            subAddress: String,
-            parentAddress: String? = null,
-        ): PerpVaultClient {
-            val auth = PerpAuthorization(perpNetwork)
-            val marketClient = PerpMarketClient(perpNetwork)
-
-            return PerpVaultClient(
-                perpAuthorization = auth,
-                perpMarketClient = marketClient,
-                perpUserClient = PerpUserClient(perpNetwork, mainAuth),
-                perpTradeClient = PerpTradeClient(perpNetwork, subAuth),
-                offSignClient = PerpOffSignClient(perpNetwork, marketClient, walletService),
-                mainAuth = mainAuth,
-                subAuth = subAuth,
-                _mainAddress = mainAddress,
-                _subAddress = subAddress,
-                _mainAccount = null,
-                _subAccount = null,
-                parentAddress = parentAddress ?: mainAddress,
+                subAccount = sub
             )
         }
     }
