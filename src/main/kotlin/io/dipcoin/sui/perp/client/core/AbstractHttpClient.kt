@@ -29,11 +29,16 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.time.Duration
+import java.time.format.DateTimeFormatter
+import java.time.ZonedDateTime
+import kotlin.math.min
 
 abstract class AbstractHttpClient : HttpClient {
 
     protected val objectMapper: ObjectMapper = jacksonObjectMapper()
     protected val okHttpClient: OkHttpClient
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     init {
         okHttpClient = createOkHttpClient()
@@ -51,16 +56,7 @@ abstract class AbstractHttpClient : HttpClient {
         buildUrlWithAuth(builder, auth)
         val httpRequest = builder.build()
         return try {
-            okHttpClient.newCall(httpRequest).execute().use { response ->
-                val bodyStr = response.body?.string().orEmpty()
-                if (!response.isSuccessful) {
-                    throw PerpHttpException(
-                        "HTTP ${response.code} ${response.message.trim()}: ${bodyStr.take(512)}",
-                    )
-                }
-                if (bodyStr.isBlank()) return@use null
-                objectMapper.readValue(bodyStr, typeReference)
-            }
+            executeWith429Retry(httpRequest, typeReference, "POST")
         } catch (e: PerpHttpException) {
             throw e
         } catch (e: IOException) {
@@ -74,21 +70,83 @@ abstract class AbstractHttpClient : HttpClient {
         buildUrlWithAuth(builder, auth)
         val httpRequest = builder.build()
         return try {
-            okHttpClient.newCall(httpRequest).execute().use { response ->
-                val bodyStr = response.body?.string().orEmpty()
-                if (!response.isSuccessful) {
-                    throw PerpHttpException(
-                        "HTTP ${response.code} ${response.message.trim()}: ${bodyStr.take(512)}",
-                    )
-                }
-                if (bodyStr.isBlank()) return@use null
-                objectMapper.readValue(bodyStr, typeReference)
-            }
+            executeWith429Retry(httpRequest, typeReference, "GET")
         } catch (e: PerpHttpException) {
             throw e
         } catch (e: IOException) {
             throw PerpRpcFailedException("Unable to send GET request", e)
         }
+    }
+
+    /**
+     * Retries on HTTP 429 using [Retry-After] when present, otherwise exponential backoff.
+     */
+    private fun <T> executeWith429Retry(
+        httpRequest: Request,
+        typeReference: TypeReference<T>,
+        methodLabel: String,
+    ): T? {
+        repeat(MAX_RATE_LIMIT_ATTEMPTS) { attempt ->
+            okHttpClient.newCall(httpRequest).execute().use { response ->
+                val bodyStr = response.body?.string().orEmpty()
+                when {
+                    response.code == 429 -> {
+                        if (attempt >= MAX_RATE_LIMIT_ATTEMPTS - 1) {
+                            throw PerpHttpException(
+                                "HTTP 429 Too Many Requests after ${MAX_RATE_LIMIT_ATTEMPTS} attempts: ${bodyStr.take(512)}",
+                            )
+                        }
+                        val waitMs = computeRateLimitWaitMs(response.header(HEADER_RETRY_AFTER), attempt)
+                        val urlForLog = httpRequest.url.run { "$scheme://$host$encodedPath" }
+                        log.warn(
+                            "{} {} rate limited (429), waiting {} ms before retry {}/{}",
+                            methodLabel,
+                            urlForLog,
+                            waitMs,
+                            attempt + 2,
+                            MAX_RATE_LIMIT_ATTEMPTS,
+                        )
+                        sleepUnchecked(waitMs)
+                    }
+                    !response.isSuccessful -> {
+                        throw PerpHttpException(
+                            "HTTP ${response.code} ${response.message.trim()}: ${bodyStr.take(512)}",
+                        )
+                    }
+                    bodyStr.isBlank() -> return null
+                    else -> return objectMapper.readValue(bodyStr, typeReference)
+                }
+            }
+        }
+        error("unreachable")
+    }
+
+    private fun sleepUnchecked(ms: Long) {
+        try {
+            Thread.sleep(ms)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw PerpRpcFailedException("Interrupted during rate-limit backoff", e)
+        }
+    }
+
+    /** Prefer [Retry-After] (seconds or HTTP-date); else exponential backoff capped at [MAX_BACKOFF_MS]. */
+    private fun computeRateLimitWaitMs(retryAfterHeader: String?, attemptIndex: Int): Long {
+        val trimmed = retryAfterHeader?.trim()
+        if (!trimmed.isNullOrEmpty()) {
+            trimmed.toLongOrNull()?.let { sec ->
+                return (sec * 1000L).coerceIn(MIN_BACKOFF_MS, MAX_BACKOFF_MS)
+            }
+            try {
+                val zdt = ZonedDateTime.parse(trimmed, DateTimeFormatter.RFC_1123_DATE_TIME)
+                val retryAt = zdt.toInstant().toEpochMilli()
+                return (retryAt - System.currentTimeMillis()).coerceIn(MIN_BACKOFF_MS, MAX_BACKOFF_MS)
+            } catch (_: Exception) {
+                // ignore malformed date
+            }
+        }
+        val exp = (INITIAL_BACKOFF_MS shl min(attemptIndex, 5)).coerceAtMost(MAX_BACKOFF_MS)
+        return exp.coerceAtLeast(MIN_BACKOFF_MS)
     }
 
     protected fun toQueryParams(o: Any?): Map<String, String> {
@@ -119,7 +177,14 @@ abstract class AbstractHttpClient : HttpClient {
         private val JSON = "application/json; charset=utf-8".toMediaType()
         private const val HEADER_AUTH = "Authorization"
         private const val HEADER_ADDR = "X-Wallet-Address"
+        private const val HEADER_RETRY_AFTER = "Retry-After"
         private const val HEADER_PREFIX = "Bearer "
+
+        /** Total attempts including the first call (e.g. 6 => up to 5 backoffs after 429). */
+        private const val MAX_RATE_LIMIT_ATTEMPTS = 6
+        private const val INITIAL_BACKOFF_MS = 1_000L
+        private const val MIN_BACKOFF_MS = 200L
+        private const val MAX_BACKOFF_MS = 120_000L
 
         fun getOkHttpClientBuilder(): OkHttpClient.Builder {
             val builder = OkHttpClient.Builder()
