@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.dipcoin.sui.perp.client.auth.AuthSession
+import io.dipcoin.sui.perp.exception.PerpHttpException
 import io.dipcoin.sui.perp.exception.PerpJsonParseException
 import io.dipcoin.sui.perp.exception.PerpRpcFailedException
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -51,10 +52,17 @@ abstract class AbstractHttpClient : HttpClient {
         val httpRequest = builder.build()
         return try {
             okHttpClient.newCall(httpRequest).execute().use { response ->
-                if (response.isSuccessful) {
-                    response.body?.string()?.let { objectMapper.readValue(it, typeReference) }
-                } else null
+                val bodyStr = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    throw PerpHttpException(
+                        "HTTP ${response.code} ${response.message.trim()}: ${bodyStr.take(512)}",
+                    )
+                }
+                if (bodyStr.isBlank()) return@use null
+                objectMapper.readValue(bodyStr, typeReference)
             }
+        } catch (e: PerpHttpException) {
+            throw e
         } catch (e: IOException) {
             throw PerpRpcFailedException("Unable to send POST request", e)
         }
@@ -67,10 +75,17 @@ abstract class AbstractHttpClient : HttpClient {
         val httpRequest = builder.build()
         return try {
             okHttpClient.newCall(httpRequest).execute().use { response ->
-                if (response.isSuccessful) {
-                    response.body?.string()?.let { objectMapper.readValue(it, typeReference) }
-                } else null
+                val bodyStr = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    throw PerpHttpException(
+                        "HTTP ${response.code} ${response.message.trim()}: ${bodyStr.take(512)}",
+                    )
+                }
+                if (bodyStr.isBlank()) return@use null
+                objectMapper.readValue(bodyStr, typeReference)
             }
+        } catch (e: PerpHttpException) {
+            throw e
         } catch (e: IOException) {
             throw PerpRpcFailedException("Unable to send GET request", e)
         }

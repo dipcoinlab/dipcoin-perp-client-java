@@ -163,6 +163,12 @@ object OrderUtil {
         return longToBytes(salt)
     }
 
+    /**
+     * Decimal string for [PlaceOrderRequest.salt] / tpSalt / slSalt.
+     * Do not use [String] on raw [getSalt] bytes — that breaks [getSerializedOrder]'s [BigInteger] parse.
+     */
+    fun getSaltDecimalString(): String = BigInteger(1, getSalt()).toString()
+
     private fun getMessageSignature(msg: ByteArray, suiKeyPair: SuiKeyPair<*>): String {
         val signatureScheme = suiKeyPair.signatureScheme()
         return when {
