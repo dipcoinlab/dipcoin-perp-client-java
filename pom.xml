@@ -6,7 +6,7 @@
 
     <groupId>io.dipcoin</groupId>
     <artifactId>dipcoin-perp-client-kotlin</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <name>dipcoin-perp-client-kotlin</name>
     <description>Kotlin Implementation of the Dipcoin Perp Client Library.</description>
     <url>https://github.com/dipcoinlab/dipcoin-perp-client-kotlin</url>
