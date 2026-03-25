@@ -50,6 +50,7 @@ abstract class AbstractHttpClient : HttpClient {
         } catch (e: com.fasterxml.jackson.core.JsonProcessingException) {
             throw PerpJsonParseException("Unable to serialize request body", e)
         }
+        log.info("POST {} body: {}", url, requestBody)
         val builder = Request.Builder()
             .url(url)
             .post(requestBody.toRequestBody(JSON))
@@ -89,6 +90,7 @@ abstract class AbstractHttpClient : HttpClient {
         repeat(MAX_RATE_LIMIT_ATTEMPTS) { attempt ->
             okHttpClient.newCall(httpRequest).execute().use { response ->
                 val bodyStr = response.body?.string().orEmpty()
+                log.info("{} {} => {} body: {}", methodLabel, httpRequest.url.encodedPath, response.code, bodyStr.take(1024))
                 when {
                     response.code == 429 -> {
                         if (attempt >= MAX_RATE_LIMIT_ATTEMPTS - 1) {

@@ -15,8 +15,8 @@ package io.dipcoin.sui.perp.model.request
 
 data class BalancePageRequest(
     var parentAddress: String? = null,
-    var pageNum: Int = 0,
-    var pageSize: Int = 0,
+    var pageNum: Int = 1,
+    var pageSize: Int = 100,
     /** start time (in milliseconds); default 90 days ago when not set */
     var beginTime: Long = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000,
 )

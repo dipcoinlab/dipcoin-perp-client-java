@@ -13,11 +13,17 @@
 
 package io.dipcoin.sui.perp.model.request
 
+/**
+ * History orders; [pageSize] defaults to a positive value so list endpoints return rows.
+ *
+ * [beginTime]/[endTime] default to a rolling ~90-day window ending now. Sending both as `0` makes the API
+ * match an empty time range, so clients see `data: []` while the envelope may still show `total: -1`.
+ */
 data class HistoryOrdersRequest(
     var parentAddress: String? = null,
     var symbol: String? = null,
-    var pageNum: Int = 0,
-    var pageSize: Int = 0,
-    var beginTime: Long = 0L,
-    var endTime: Long = 0L,
+    var pageNum: Int = 1,
+    var pageSize: Int = 100,
+    var beginTime: Long = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000,
+    var endTime: Long = System.currentTimeMillis(),
 )

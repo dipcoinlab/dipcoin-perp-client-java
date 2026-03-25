@@ -13,9 +13,13 @@
 
 package io.dipcoin.sui.perp.model.request
 
+/**
+ * Open-order query. DipCoin returns an empty [io.dipcoin.sui.perp.model.PageResponse.data] when [pageSize] is zero,
+ * while [io.dipcoin.sui.perp.model.PageResponse.total] may still report the match count — defaults use a positive page size.
+ */
 data class OrdersRequest(
     var parentAddress: String? = null,
     var symbol: String? = null,
-    var pageNum: Int = 0,
-    var pageSize: Int = 0,
+    var pageNum: Int = 1,
+    var pageSize: Int = 100,
 )

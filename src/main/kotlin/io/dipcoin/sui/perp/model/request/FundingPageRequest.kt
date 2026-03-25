@@ -16,7 +16,7 @@ package io.dipcoin.sui.perp.model.request
 data class FundingPageRequest(
     var parentAddress: String? = null,
     var symbol: String? = null,
-    var pageNum: Int = 0,
-    var pageSize: Int = 0,
+    var pageNum: Int = 1,
+    var pageSize: Int = 100,
     var beginTime: Long = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000,
 )
